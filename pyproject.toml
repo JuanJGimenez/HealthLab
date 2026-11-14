@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "misalud"
+version = "0.1.0"
+description = "Local desktop app that accumulates and analyses Samsung Health exports."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.0",
+    "pandas>=2.2",
+]
+
+[project.optional-dependencies]
+ui = ["pywebview>=5.0"]
+dev = [
+    "mypy>=1.10",
+    "pandas-stubs>=2.2",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+misalud = ["py.typed", "reading/contracts.json"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, I: import order, N: naming, D: docstrings,
+# UP: modern syntax, B: likely bugs, SIM: simplifications, PTH: pathlib, RUF: ruff rules.
+select = ["E", "W", "F", "I", "N", "D", "UP", "B", "SIM", "PTH", "RUF"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Test functions are documented by their names; module docstrings stay mandatory.
+"tests/**" = ["D103"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+addopts = "--strict-markers --cov=misalud --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
