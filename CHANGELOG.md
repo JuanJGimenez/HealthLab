@@ -3,6 +3,30 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [0.6.0] - 2026-11-15
+
+Etapa 5 del plan: ventana y dashboard. La app ya se puede abrir: muestra las seis vistas
+consultando la base en vivo, importa con vista previa y confirmación, y tiene el panel "Base de
+datos". Disponible en español y en inglés.
+
+### Agregado
+
+- `interface.api`: los métodos que la página puede pedirle a Python.
+- `interface.web`: la página con las vistas Oxígeno, Sueño, Corazón, Actividad, Relacionar y
+  Datos, los filtros de período y de noches, el flujo "Actualizar datos" y el panel "Base de datos".
+- `interface.i18n` y `interface.settings`: textos en dos idiomas y preferencias recordadas.
+- `interface.window`: la ventana, con el comando `misalud`.
+- `queries`: resumen general, noches con caída sostenida por día de la semana, mediana móvil,
+  filtro de noches de viernes y sábado, exportación a CSV y resumen de validaciones.
+- `derived`: horas dormidas por noche, y recálculo automático cuando cambia la definición de las
+  tablas calculadas.
+- Prueba de punta a punta de la página en un navegador real.
+
+### Pendiente de comprobar
+
+- La ventana en sí (pywebview sobre Windows) todavía no se abrió en una computadora con Windows.
+  La página se probó en Chromium con la misma conexión a Python que usa la ventana.
+
 ## [0.5.0] - 2026-11-15
 
 Etapa 4 del plan: tablas calculadas y consultas. Después de cada importación la app arma una fila

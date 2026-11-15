@@ -79,6 +79,30 @@ Las consultas devuelven listas y diccionarios con texto, números y vacíos, lis
 ventana. Una pantalla solo puede pedir métricas de una lista fija, porque el nombre de la métrica
 termina dentro de la consulta.
 
+## Módulos de la interfaz
+
+| Módulo | Responsabilidad |
+|---|---|
+| `api` | Lo único que la página puede pedirle a Python: datos de cada vista, importación en dos pasos, panel de la base, idioma y tema |
+| `i18n` y `locales/` | Los textos, un archivo por idioma (`es.json`, `en.json`) |
+| `settings` | Recordar el idioma y el tema en `data/settings.json` |
+| `window` | Abrir la ventana con pywebview y mostrar los selectores de archivo |
+| `web/` | La página: `index.html`, `app.css`, `app.js` y la librería de gráficos en `vendor/` |
+
+Reglas de la interfaz:
+
+- La página no calcula ni lee archivos: llama a un método de `api` y dibuja lo que recibe.
+- Cada método devuelve datos simples y, si algo falla, un mensaje de error en lugar de cortar la app.
+- Ninguna frase está escrita en la página: todas salen de los archivos de idioma. Una prueba
+  revisa que los dos idiomas tengan los mismos textos y que la página no pida ninguno que falte.
+- La ventana no abre puertos ni se conecta a internet.
+
+Cómo se prueba: `tests/test_interface_api.py` cubre cada método de `api`, y
+`tests/test_interface_page.py` abre la página en un navegador real (Playwright) y recorre el camino
+completo: app vacía, importar, vista previa, confirmar, las seis vistas, los filtros, el panel de la
+base y el cambio de idioma. El módulo `window` no tiene prueba automática: necesita una ventana real
+y se comprueba a mano en Windows.
+
 ## Flujo de una importación
 
 1. `interface` recibe el zip elegido por el usuario y llama a `pipeline`.

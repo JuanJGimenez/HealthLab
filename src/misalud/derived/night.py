@@ -143,6 +143,7 @@ SELECT
     stage.light_min,
     stage.deep_min,
     stage.rem_min,
+    (stage.light_min + stage.deep_min + stage.rem_min) / 60 AS asleep_hours,
     oxygen.spo2_avg,
     oxygen.spo2_min,
     oxygen.low_minutes,

@@ -51,7 +51,9 @@ def run(tmp_path: Path, paths: Paths, days: int, moment: datetime, tag: str) -> 
 def test_preparing_an_import_shows_the_preview_and_stores_no_record(
     tmp_path: Path, paths: Paths, export_zip: Path
 ) -> None:
-    prepared = prepare_import(export_zip, paths, tmp_path / "work")
+    steps: list[str] = []
+    prepared = prepare_import(export_zip, paths, tmp_path / "work", steps.append)
+    assert steps == ["opening", "checking", "transforming", "comparing"]
     assert prepared.info.file_name == "export.zip"
     assert prepared.archive == export_zip
     assert prepared.plan.total("new") > 0

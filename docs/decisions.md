@@ -46,6 +46,10 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 38 | Un registro nocturno que repite el inicio y el fin de otro se rechaza; queda el primero que creó Samsung | Samsung reescribe días después registros de respiración sobre una noche ya registrada; no hay cómo ubicarlos |
 | 39 | Los días de la semana se guardan como número y los nombres de códigos en inglés; la interfaz traduce | La interfaz es bilingüe (decisión 14); la base no debe depender del idioma |
 | 40 | La tabla `day` no tiene calorías en reposo | La exportación no las separa por día; el diseño las pedía |
+| 41 | Todas las cifras se calculan en Python; la página solo dibuja | El prototipo calculaba en la página; así cada número tiene una prueba automática y una sola definición |
+| 42 | La librería de gráficos (Apache ECharts 5.6) viaja dentro de la app | La app no se conecta a internet; la licencia Apache 2.0 lo permite y va incluida |
+| 43 | La página se prueba en un navegador real, conectada a Python sin la ventana | Permite probar de punta a punta, de la app vacía al dashboard, en cada cambio |
+| 44 | Las tablas calculadas llevan su propio número de versión y se recalculan solas si cambia | Una actualización de la app puede cambiar una columna de `night` sin que el usuario tenga que reimportar |
 
 ## Notas
 
@@ -56,5 +60,6 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisiones 29 y 30.** Tomadas en la etapa 2a y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 31 a 33.** Tomadas en la etapa 2b y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 34 a 36.** Tomadas en la etapa 3 y aprobadas por el usuario el 15 de noviembre de 2026.
-- **Decisiones 37 a 40.** Tomadas en la etapa 4; pendientes de la confirmación del usuario.
+- **Decisiones 37 a 40.** Tomadas en la etapa 4 y aprobadas por el usuario el 15 de noviembre de 2026.
+- **Decisiones 41 a 44.** Tomadas en la etapa 5; pendientes de la confirmación del usuario.
 - **Esquema.** La etapa 4 agregó la tabla `exercise_custom_type` a la versión 1 del esquema, sin migración, porque todavía no existe ninguna base en uso. Desde la primera entrega que el usuario instale, todo cambio de esquema irá por migración.

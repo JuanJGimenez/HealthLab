@@ -73,3 +73,20 @@ def data_period(connection: Connection) -> Record:
             (SELECT max(day) FROM day) AS last_day,
             (SELECT count(*) FROM day) AS days""",
     )[0]
+
+
+def issue_summary(connection: Connection) -> list[Record]:
+    """Summarise what the validations found in the most recent import.
+
+    Returns:
+        One record per table, rule and action with ``table``, ``rule``,
+        ``action`` (``rejected`` or ``kept``) and ``records``; empty when the
+        database has no imports or the last one had no issues.
+    """
+    return records(
+        connection,
+        """SELECT table_name AS "table", rule, action, count(*) AS records
+        FROM validation_issue
+        WHERE import_id = (SELECT max(import_id) FROM import_log)
+        GROUP BY ALL ORDER BY action DESC, records DESC, "table", rule""",
+    )

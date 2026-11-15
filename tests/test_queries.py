@@ -9,16 +9,20 @@ import pandas as pd
 import pytest
 
 from misalud.derived.rebuild import rebuild_derived
-from misalud.queries.common import Period, UnknownMetricError, plain
-from misalud.queries.database import data_period, import_history, table_sizes
+from misalud.queries.common import NightScope, Period, UnknownMetricError, plain
+from misalud.queries.database import data_period, import_history, issue_summary, table_sizes
 from misalud.queries.days import DAY_METRICS, days_by_month, list_days
 from misalud.queries.nights import (
     NIGHT_METRICS,
     list_nights,
     nights_by_month,
     nights_by_weekday,
+    nights_csv,
+    overview,
     oxygen_summary,
     relate,
+    rolling_median,
+    sustained_low_by_weekday,
     worst_oxygen_nights,
 )
 from misalud.storage.database import Connection, open_database
@@ -91,9 +95,18 @@ def test_the_oxygen_summary_counts_only_nights_with_enough_recording(db: Connect
 
 def test_the_worst_nights_are_those_with_time_under_90(db: Connection) -> None:
     worst = worst_oxygen_nights(db)
-    assert [(night["night_date"], night["low_minutes"]) for night in worst] == [("2026-01-05", 10)]
+    assert [(night["night_date"], night["low_minutes"]) for night in worst] == [
+        ("2026-01-05", 10),
+        ("2026-01-09", 0),
+    ]
+    by_reading = worst_oxygen_nights(db, order_by="spo2_min", limit=1)
+    assert [night["spo2_min"] for night in by_reading] == [84]
+    by_intervals = worst_oxygen_nights(db, order_by="intervals_below_85")
+    assert [night["intervals_below_85"] for night in by_intervals] == [1, 0]
     assert worst_oxygen_nights(db, limit=0) == []
     assert worst_oxygen_nights(db, MIDDLE) == []
+    with pytest.raises(UnknownMetricError):
+        worst_oxygen_nights(db, order_by="night_date")
 
 
 def test_monthly_averages_flag_months_with_few_nights(db: Connection) -> None:
@@ -209,6 +222,10 @@ def test_the_import_history_lists_the_most_recent_first() -> None:
             }
         )
         issues = [ValidationIssue("steps_day", "x", "date_before_2020", "1970-01-01")]
+        issues += [
+            ValidationIssue("steps_day", "y", "date_before_2020", "1970-01-02"),
+            ValidationIssue("steps_interval", "z", "detail_file_empty", "z.json", "kept"),
+        ]
         first = ImportInfo("first.zip", datetime(2026, 1, 6, 20, 0), "7013005")
         apply_merge(
             connection,
@@ -218,7 +235,17 @@ def test_the_import_history_lists_the_most_recent_first() -> None:
             failures={"hrv": "gone"},
             now=datetime(2026, 1, 7, 9, 0),
         )
+        assert issue_summary(connection) == [
+            {"table": "steps_day", "rule": "date_before_2020", "action": "rejected", "records": 2},
+            {
+                "table": "steps_interval",
+                "rule": "detail_file_empty",
+                "action": "kept",
+                "records": 1,
+            },
+        ]
         apply_merge(connection, {}, info=ImportInfo("second.zip", datetime(2026, 2, 1)))
+        assert issue_summary(connection) == []
         history = import_history(connection)
         assert [row["file_name"] for row in history] == ["second.zip", "first.zip"]
         assert history[0]["new_count"] == 0
@@ -235,6 +262,64 @@ def test_the_import_history_lists_the_most_recent_first() -> None:
             "unchanged_count": 0,
             "kept_count": 0,
             "superseded_count": 0,
-            "rejected_count": 1,
+            "rejected_count": 2,
             "failed_domains": 1,
         }
+
+
+def test_a_scope_can_keep_only_weekend_or_weekday_nights(db: Connection) -> None:
+    weekend = NightScope(nights="weekend")
+    assert [night["session_id"] for night in list_nights(db, weekend)] == ["C"]
+    weekdays = NightScope(start=date(2026, 1, 6), nights="weekdays")
+    assert [night["session_id"] for night in list_nights(db, weekdays)] == ["B"]
+    assert NightScope().condition("night_date") == ("TRUE", [])
+    assert oxygen_summary(db, weekend)["nights_below_90"] == 0
+
+
+def test_the_overview_joins_oxygen_sleep_and_heart(db: Connection) -> None:
+    result = overview(db)
+    assert (result["nights"], result["nights_sustained_low"]) == (3, 1)
+    assert (result["first_night"], result["last_night"]) == ("2026-01-05", "2026-01-09")
+    assert round(result["average_hours"], 3) == round(20.5 / 3, 3)
+    # Only night A has stages: 200 + 80 + 120 minutes asleep.
+    assert round(result["average_asleep_hours"], 3) == round(400 / 60, 3)
+    assert (result["median_hrv_ms"], result["average_night_hr"]) == (40, 57.5)
+    empty = overview(db, Period(start=date(2027, 1, 1)))
+    assert (empty["nights"], empty["first_night"], empty["average_hours"]) == (0, None, None)
+
+
+def test_sustained_drops_are_counted_by_weekday(db: Connection) -> None:
+    assert sustained_low_by_weekday(db) == {
+        "weekdays": [
+            {"weekday": 1, "nights": 1, "sustained": 1, "share_pct": 100.0},
+            {"weekday": 5, "nights": 1, "sustained": 0, "share_pct": 0.0},
+        ],
+        "overall_share_pct": 50.0,
+    }
+    assert sustained_low_by_weekday(db, MIDDLE) == {"weekdays": [], "overall_share_pct": None}
+
+
+def test_the_rolling_median_follows_the_most_recent_nights(db: Connection) -> None:
+    assert rolling_median(db, "hours", window=2) == [
+        {"night_date": "2026-01-05", "value": 7.0},
+        {"night_date": "2026-01-06", "value": 6.75},
+        {"night_date": "2026-01-09", "value": 6.75},
+    ]
+    # Night B has no valid oxygen, so the window skips it.
+    assert [point["night_date"] for point in rolling_median(db, "spo2_min")] == [
+        "2026-01-05",
+        "2026-01-09",
+    ]
+    assert rolling_median(db, "movement_awakening") == []
+    with pytest.raises(UnknownMetricError):
+        rolling_median(db, "session_id")
+
+
+def test_nights_can_be_exported_as_csv(db: Connection) -> None:
+    lines = nights_csv(db).splitlines()
+    assert len(lines) == 4
+    header = lines[0].split(",")
+    assert header[:2] == ["night_date", "session_id"]
+    assert header[-1] == "has_valid_oxygen"
+    assert lines[1].startswith("2026-01-05,A,2026-01-05T23:30:00,")
+    assert nights_csv(db, Period(start=date(2027, 1, 1))) == ""

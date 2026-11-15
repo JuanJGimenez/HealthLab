@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "misalud"
-version = "0.5.0"
+version = "0.6.0"
 description = "Local desktop app that accumulates and analyses Samsung Health exports."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,8 +13,11 @@ dependencies = [
     "pandas>=2.2",
 ]
 
+[project.scripts]
+misalud = "misalud.interface.window:main"
+
 [project.optional-dependencies]
-ui = ["pywebview>=5.0"]
+ui = ["pywebview>=6.0"]
 dev = [
     "mypy>=1.10",
     "pandas-stubs>=2.2",
@@ -27,7 +30,13 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-misalud = ["py.typed", "reading/contracts.json"]
+misalud = [
+    "py.typed",
+    "reading/contracts.json",
+    "interface/locales/*.json",
+    "interface/web/*",
+    "interface/web/vendor/*",
+]
 
 [tool.ruff]
 line-length = 100
@@ -51,6 +60,10 @@ strict = true
 python_version = "3.12"
 files = ["src", "tests"]
 
+[[tool.mypy.overrides]]
+module = ["webview", "playwright.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
@@ -58,3 +71,4 @@ addopts = "--strict-markers --cov=misalud --cov-report=term-missing"
 
 [tool.coverage.run]
 branch = true
+omit = ["*/__main__.py"]

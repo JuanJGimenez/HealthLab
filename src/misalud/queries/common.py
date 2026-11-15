@@ -10,7 +10,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from misalud.storage.database import Connection
 
@@ -50,6 +50,30 @@ class Period:
             parts.append(f"{column} <= ?")
             parameters.append(self.end)
         return " AND ".join(parts), parameters
+
+
+NightKind = Literal["all", "weekend", "weekdays"]
+
+
+@dataclass(frozen=True, slots=True)
+class NightScope(Period):
+    """The nights a screen is looking at: a period and, optionally, a kind of night.
+
+    Attributes:
+        nights: ``weekend`` keeps Friday and Saturday nights, ``weekdays`` keeps
+            Sunday to Thursday nights, ``all`` keeps every night.
+    """
+
+    nights: NightKind = "all"
+
+    def condition(self, column: str) -> tuple[str, list[date]]:
+        """Return the SQL condition for the period and the kind of night."""
+        text, parameters = Period.condition(self, column)
+        if self.nights == "weekend":
+            text += " AND is_weekend_night"
+        elif self.nights == "weekdays":
+            text += " AND NOT is_weekend_night"
+        return text, parameters
 
 
 ALL_TIME = Period()

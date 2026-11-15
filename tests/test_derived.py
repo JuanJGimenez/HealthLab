@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 
 from misalud.derived import rebuild
-from misalud.derived.rebuild import DerivedCounts, rebuild_derived
+from misalud.derived.rebuild import DerivedCounts, ensure_derived, rebuild_derived
 from misalud.storage.database import Connection, open_database
 from tests.support.sample_db import build_sample, insert, session
 
@@ -49,6 +49,7 @@ def test_a_night_carries_its_sleep_figures(db: Connection) -> None:
     assert a["extra_sleep_min"] == 150
     assert (a["awake_min"], a["light_min"], a["deep_min"], a["rem_min"]) == (20, 200, 80, 120)
     assert (a["bedtime_hour"], a["weekday"], a["is_weekend_night"]) == (23.5, 1, False)
+    assert round(a["asleep_hours"], 3) == round(400 / 60, 3)
 
 
 def test_a_night_that_starts_after_midnight_has_a_bedtime_above_24(db: Connection) -> None:
@@ -158,3 +159,16 @@ def test_a_failed_rebuild_keeps_the_previous_tables(
     with pytest.raises(RuntimeError, match="boom"):
         rebuild_derived(db)
     assert db.execute("SELECT count(*) FROM night").fetchall() == [(3,)]
+
+
+def test_calculated_tables_are_rebuilt_only_when_missing_or_out_of_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with build_sample() as connection:
+        assert ensure_derived(connection) is True
+        assert ensure_derived(connection) is False
+        assert connection.execute("SELECT count(*) FROM night").fetchall() == [(3,)]
+        monkeypatch.setattr(rebuild, "DERIVED_VERSION", 2)
+        assert ensure_derived(connection) is True
+        assert connection.execute("SELECT version FROM derived_version").fetchall() == [(2,)]
+        assert ensure_derived(connection) is False

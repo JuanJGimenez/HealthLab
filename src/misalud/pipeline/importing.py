@@ -8,6 +8,7 @@ original archive.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -60,7 +61,18 @@ class ImportResult:
     derived: DerivedCounts
 
 
-def prepare_import(chosen: Path, paths: Paths, work_dir: Path) -> PreparedImport:
+Progress = Callable[[str], None]
+"""Receives the name of each step as it starts: ``opening``, ``checking``,
+``transforming`` and ``comparing``."""
+
+
+def _silent(_: str) -> None:
+    """Ignore progress, for callers that do not show it."""
+
+
+def prepare_import(
+    chosen: Path, paths: Paths, work_dir: Path, progress: Progress = _silent
+) -> PreparedImport:
     """Read an export and build the preview of merging it.
 
     Args:
@@ -68,6 +80,7 @@ def prepare_import(chosen: Path, paths: Paths, work_dir: Path) -> PreparedImport
         paths: Where the app keeps its files.
         work_dir: Empty scratch folder for extracting an archive. The caller
             removes it when the import ends.
+        progress: Called with the name of each step as it starts.
 
     Returns:
         Everything the preview shows and everything ``confirm_import`` needs.
@@ -76,15 +89,19 @@ def prepare_import(chosen: Path, paths: Paths, work_dir: Path) -> PreparedImport
         ReadingError: If ``chosen`` is not a readable Samsung Health export.
         SchemaVersionError: If the database was made by a newer MiSalud.
     """
+    progress("opening")
     root = open_export(chosen, work_dir)
+    progress("checking")
     compatibility = compare_with_contracts(root)
     source = ExportSource.from_folder(root)
+    progress("transforming")
     transformed = transform_export(source, blocked_tables=compatibility.blocked_tables())
     info = ImportInfo(
         file_name=chosen.name,
         exported_at=source.exported_at,
         samsung_app_version=", ".join(compatibility.app_versions) or None,
     )
+    progress("comparing")
     paths.ensure()
     with open_database(paths.database) as connection:
         plan = plan_merge(connection, transformed.tables, exported_at=info.exported_at)

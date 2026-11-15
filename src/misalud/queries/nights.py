@@ -7,7 +7,10 @@ clean night.
 
 from __future__ import annotations
 
+import csv
+import io
 from collections.abc import Sequence
+from types import MappingProxyType
 from typing import Final
 
 import pandas as pd
@@ -35,6 +38,7 @@ NIGHT_METRICS: Final = (
     "light_min",
     "deep_min",
     "rem_min",
+    "asleep_hours",
     "spo2_avg",
     "spo2_min",
     "low_minutes",
@@ -114,21 +118,143 @@ def oxygen_summary(connection: Connection, period: Period = ALL_TIME) -> Record:
     )[0]
 
 
-def worst_oxygen_nights(
-    connection: Connection, period: Period = ALL_TIME, limit: int = 30
-) -> list[Record]:
-    """Return the nights with the most minutes under 90 %, worst first.
+WORST_ORDERS: Final = MappingProxyType(
+    {
+        "low_minutes": "low_minutes DESC, spo2_min, night_date",
+        "spo2_min": "spo2_min, low_minutes DESC, night_date",
+        "intervals_below_85": "intervals_below_85 DESC, low_minutes DESC, night_date",
+    }
+)
+"""Ways to rank the hardest nights, by the metric that comes first."""
 
-    Only nights with a valid oxygen recording and some time under 90 % appear.
+
+def worst_oxygen_nights(
+    connection: Connection,
+    period: Period = ALL_TIME,
+    limit: int = 15,
+    order_by: str = "low_minutes",
+) -> list[Record]:
+    """Return the hardest nights for oxygen, worst first.
+
+    Only nights with a valid oxygen recording appear.
+
+    Args:
+        connection: An open connection.
+        period: Dates to include.
+        limit: Largest number of nights to return.
+        order_by: ``low_minutes`` (most minutes under 90 %), ``spo2_min``
+            (lowest reading) or ``intervals_below_85`` (most intervals under 85 %).
+
+    Raises:
+        UnknownMetricError: If ``order_by`` is not one of the three.
     """
+    check_metrics([order_by], list(WORST_ORDERS))
     condition, parameters = period.condition("night_date")
     return records(
         connection,
-        f"""SELECT * FROM night
-        WHERE {condition} AND {VALID_OXYGEN} AND low_minutes > 0
-        ORDER BY low_minutes DESC, spo2_min, night_date LIMIT ?""",
+        f"""SELECT * FROM night WHERE {condition} AND {VALID_OXYGEN}
+        ORDER BY {WORST_ORDERS[order_by]} LIMIT ?""",
         [*parameters, limit],
     )
+
+
+def overview(connection: Connection, period: Period = ALL_TIME) -> Record:
+    """Return the headline figures of a period, for the cards above every view.
+
+    Returns:
+        The fields of ``oxygen_summary`` plus ``first_night`` and ``last_night``,
+        ``average_hours`` in bed and ``average_asleep_hours``, ``median_hrv_ms``
+        and ``average_night_hr``.
+    """
+    condition, parameters = period.condition("night_date")
+    sleep = records(
+        connection,
+        f"""SELECT min(night_date) AS first_night, max(night_date) AS last_night,
+            avg(hours) AS average_hours, avg(asleep_hours) AS average_asleep_hours,
+            median(hrv_rmssd_ms) AS median_hrv_ms, avg(night_hr_avg) AS average_night_hr
+        FROM night WHERE {condition}""",
+        parameters,
+    )[0]
+    return {**oxygen_summary(connection, period), **sleep}
+
+
+def sustained_low_by_weekday(connection: Connection, period: Period = ALL_TIME) -> Record:
+    """Count, for each day of the week, the nights with five minutes or more under 90 %.
+
+    Returns:
+        ``weekdays``: one record per weekday with nights, holding ``weekday``
+        (1 is Monday), ``nights`` with valid oxygen, ``sustained`` among them and
+        ``share_pct``. ``overall_share_pct``: the same share over the whole period,
+        ``None`` when no night has valid oxygen.
+    """
+    condition, parameters = period.condition("night_date")
+    counts = f"""count(*) AS nights,
+        count(*) FILTER (low_minutes >= {THRESHOLDS.sustained_low_min}) AS sustained"""
+    share = "100.0 * sustained / nights AS share_pct"
+    weekdays = records(
+        connection,
+        f"""SELECT weekday, nights, sustained, {share} FROM (
+            SELECT weekday, {counts} FROM night WHERE {condition} AND {VALID_OXYGEN}
+            GROUP BY weekday) ORDER BY weekday""",
+        parameters,
+    )
+    nights = sum(row["nights"] for row in weekdays)
+    sustained = sum(row["sustained"] for row in weekdays)
+    return {
+        "weekdays": weekdays,
+        "overall_share_pct": 100.0 * sustained / nights if nights else None,
+    }
+
+
+def rolling_median(
+    connection: Connection, metric: str, period: Period = ALL_TIME, window: int = 14
+) -> list[Record]:
+    """Return the median of a metric over the last ``window`` nights, night by night.
+
+    Nights without a value are skipped: the window always holds the most recent
+    nights that have one.
+
+    Args:
+        connection: An open connection.
+        metric: A name from ``NIGHT_METRICS``.
+        period: Dates to include.
+        window: Number of nights in the window.
+
+    Returns:
+        One record per night with a value, holding ``night_date`` and ``value``.
+
+    Raises:
+        UnknownMetricError: If the metric is not on the list.
+    """
+    check_metrics([metric], NIGHT_METRICS)
+    condition, parameters = period.condition("night_date")
+    points = records(
+        connection,
+        f"""SELECT night_date, value FROM (
+            SELECT night_date, {_value(metric)} AS value FROM night WHERE {condition})
+        WHERE value IS NOT NULL ORDER BY night_date""",
+        parameters,
+    )
+    values = pd.Series([point["value"] for point in points], dtype="float64")
+    medians = values.rolling(window, min_periods=1).median()
+    return [
+        {"night_date": point["night_date"], "value": float(median)}
+        for point, median in zip(points, medians, strict=True)
+    ]
+
+
+def nights_csv(connection: Connection, period: Period = ALL_TIME) -> str:
+    """Return the nights of a period as CSV text, one line per night.
+
+    The first line holds the column names. Empty values are empty cells.
+    """
+    rows = list_nights(connection, period)
+    output = io.StringIO()
+    if rows:
+        writer = csv.DictWriter(output, fieldnames=list(rows[0]), lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+    return output.getvalue()
 
 
 def nights_by_month(

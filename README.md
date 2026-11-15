@@ -8,9 +8,19 @@ Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica
 
 ## Estado
 
-Versión 0.5.0: datos completos, de la exportación a las consultas (etapas 1 a 4). Importa una
-exportación a su base, fusiona las siguientes sin perder datos, arma una fila por noche y por
-día y responde las preguntas de las pantallas. Todavía no abre ventana.
+Versión 0.6.0: la app ya se abre (etapas 1 a 5). Importa una exportación con vista previa, fusiona
+sin perder datos y muestra seis vistas: Oxígeno, Sueño, Corazón, Actividad, Relacionar y Datos, en
+español o en inglés. Falta el detalle de una noche, la vista del día, el informe y el empaquetado.
+
+## Abrir la app
+
+Hasta que exista la carpeta portátil (etapa 9) hace falta tener Python 3.12 o superior:
+
+```
+pip install ".[ui]"
+misalud
+```
+
 El plan completo y las decisiones de diseño están en `docs/`.
 
 ## Requisitos
