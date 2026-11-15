@@ -29,6 +29,8 @@ from misalud.queries import database as database_queries
 from misalud.queries import days as day_queries
 from misalud.queries import nights as night_queries
 from misalud.queries.common import NightKind, NightScope, Period, Record
+from misalud.queries.coverage import short_window_notices
+from misalud.queries.day_detail import DAY_TRACKS, day_detail, hourly_profile
 from misalud.queries.night_detail import TRACKS, night_detail, night_differences
 from misalud.storage.backup import list_backups, restore_backup
 from misalud.storage.database import Connection, open_database
@@ -138,6 +140,8 @@ class Api:
             "texts": load_texts(settings.language),
             "available": available,
             "night_metrics": list(night_queries.NIGHT_METRICS),
+            "relate_metrics": list(night_queries.RELATE_METRICS),
+            "day_tracks": list(DAY_TRACKS),
             "tags": tags,
             "tracks": list(TRACKS),
             "shown_tracks": list(settings.tracks),
@@ -221,6 +225,22 @@ class Api:
         with self._open() as connection:
             return {
                 "has_night": night_detail(connection, when) is not None,
+                "has_day": day_detail(connection, when) is not None,
+                "tags": annotation_store.list_tags(connection),
+                "annotations": annotation_store.day_annotations(connection, when),
+            }
+
+    @_safely
+    def day_detail(self, day: str) -> Record:
+        """Return one day with its tracks, its neighbours and what the user noted."""
+        when = date.fromisoformat(day)
+        with self._open() as connection:
+            detail = day_detail(connection, when)
+            if detail is None:
+                return {"found": False}
+            return {
+                "found": True,
+                **detail,
                 "tags": annotation_store.list_tags(connection),
                 "annotations": annotation_store.day_annotations(connection, when),
             }
@@ -294,6 +314,8 @@ class Api:
                 "activity_months": day_queries.days_by_month(
                     connection, ["steps", "exercise_min", "stress_avg"], days
                 ),
+                "hourly": hourly_profile(connection, days),
+                "notices": short_window_notices(connection, days),
             }
 
     @_safely

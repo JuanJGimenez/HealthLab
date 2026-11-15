@@ -60,6 +60,28 @@ NIGHT_METRICS: Final = (
 )
 """Numeric columns of ``night`` a screen may chart, average or relate."""
 
+DAY_RELATE_METRICS: Final = (
+    "day.active_min",
+    "day.distance_m",
+    "day.floors",
+    "day.active_calorie_kcal",
+    "day.hr_avg",
+    "day.hr_min",
+    "day.hr_max",
+    "day.energy_score",
+)
+"""Measures of a day that can be related with the night that follows it.
+
+Steps, exercise and stress of the day are already columns of ``night``.
+"""
+
+RELATE_METRICS: Final = (*NIGHT_METRICS, *DAY_RELATE_METRICS)
+"""Everything the Relate view can put on an axis."""
+
+_DAY_COLUMNS: Final = ", ".join(
+    f'{name.removeprefix("day.")} AS "{name}"' for name in DAY_RELATE_METRICS
+)
+
 OXYGEN_METRICS: Final = frozenset({"spo2_avg", "spo2_min", "low_minutes", "below_85_minutes"})
 """Metrics that only count on nights with enough oxygen recording."""
 
@@ -73,6 +95,8 @@ def _value(metric: str) -> str:
     """Return the SQL for a metric, blank on nights where it must not be reported."""
     if metric in OXYGEN_METRICS:
         return f"CASE WHEN {VALID_OXYGEN} THEN {metric} END"
+    if metric in DAY_RELATE_METRICS:
+        return f'"{metric}"'
     return metric
 
 
@@ -322,7 +346,8 @@ def relate(
 
     Args:
         connection: An open connection.
-        x: Metric on the horizontal axis.
+        x: Metric on the horizontal axis, from ``RELATE_METRICS``. A name that
+            starts with ``day.`` is a measure of the day the night began.
         y: Metric on the vertical axis.
         period: Dates to include.
         highlight_tag_id: A tag whose nights are flagged in the result, to draw
@@ -338,14 +363,16 @@ def relate(
     Raises:
         UnknownMetricError: If a metric is not on the list.
     """
-    check_metrics([x, y], NIGHT_METRICS)
+    check_metrics([x, y], RELATE_METRICS)
     condition, parameters = period.condition("night_date")
     points = records(
         connection,
         f"""SELECT night_date, x, y, tagged
         FROM (SELECT night_date, {_value(x)} AS x, {_value(y)} AS y,
                 night_date IN (SELECT day FROM annotation WHERE tag_id = ?) AS tagged
-            FROM night WHERE {condition})
+            FROM night
+            LEFT JOIN (SELECT day AS day_key, {_DAY_COLUMNS} FROM day) ON day_key = night_date
+            WHERE {condition})
         WHERE x IS NOT NULL AND y IS NOT NULL ORDER BY night_date""",
         [highlight_tag_id, *parameters],
     )

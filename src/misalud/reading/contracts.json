@@ -4340,7 +4340,8 @@
         "binning_data"
       ],
       "feeds": [
-        "steps_day"
+        "steps_day",
+        "steps_interval"
       ],
       "columns": {
         "binning_data": {
@@ -4967,9 +4968,7 @@
       "last_date": "2026-11-14",
       "rolling_window_days": 36,
       "detail_file_columns": [],
-      "feeds": [
-        "steps_interval"
-      ],
+      "feeds": [],
       "columns": {
         "duration": {
           "dtype": "int64",

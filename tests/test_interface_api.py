@@ -371,3 +371,26 @@ def test_tags_are_managed_through_the_bridge(api: Api) -> None:
     assert api.add_tag("alcohol")["error"].startswith("AnnotationError: there is already")
     assert api.rename_tag(99, "x")["ok"] is False
     assert api.set_tag_active(99, True)["ok"] is False
+
+
+def test_one_day_comes_with_tracks_and_the_typical_day(
+    api: Api, dialogs: FakeDialogs, tmp_path: Path
+) -> None:
+    do_import(api, dialogs, tmp_path, 6)
+    boot = api.bootstrap()
+    assert boot["day_tracks"] == ["pulse", "stress", "steps", "exercise", "sleep"]
+    assert "day.hr_avg" in boot["relate_metrics"]
+    day = api.day_detail("2026-01-02")
+    assert (day["ok"], day["found"]) == (True, True)
+    assert (day["previous"], day["next"]) == ("2026-01-01", "2026-01-03")
+    assert len(day["tracks"]["steps"]) > 0
+    assert len(day["tracks"]["sleep"]) > 0
+    assert len(day["tags"]) == 8
+    assert api.set_tag("2026-01-02", 3, True)["ok"]
+    assert api.day_detail("2026-01-02")["annotations"]["tags"] == [3]
+    assert api.day_detail("2030-01-01") == {"ok": True, "found": False}
+    assert (api.day("2026-01-02")["has_day"], api.day("2030-01-01")["has_day"]) == (True, False)
+    everything = api.dashboard("all", "all")
+    assert len(everything["hourly"]["pulse"]) > 0
+    assert everything["notices"] == []
+    assert api.relate("all", "all", "day.hr_avg", "hours")["ok"]
