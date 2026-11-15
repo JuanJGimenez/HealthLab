@@ -15,13 +15,13 @@ from misalud.storage.errors import StorageError
 def make_database(path: Path, tag: str) -> None:
     """Create a database that holds one recognisable row."""
     with open_database(path) as connection:
-        connection.execute("INSERT INTO tag VALUES (1, ?, true)", [tag])
+        connection.execute("INSERT INTO tag (tag_id, name, is_active) VALUES (100, ?, true)", [tag])
 
 
 def tag_in(path: Path) -> str:
     """Return the recognisable row of a database."""
     with open_database(path) as connection:
-        return str(connection.execute("SELECT name FROM tag").fetchall()[0][0])
+        return str(connection.execute("SELECT name FROM tag WHERE tag_id = 100").fetchall()[0][0])
 
 
 def test_there_is_nothing_to_back_up_before_the_first_import(tmp_path: Path) -> None:

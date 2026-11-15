@@ -73,15 +73,20 @@ def build_sample() -> Connection:
     session(db, "C", "2026-01-09 22:00", "2026-01-10 05:00", offset=-240)
     session(db, "nap", "2026-01-08 15:00", "2026-01-08 16:00")
 
+    stage_start = at("2026-01-05 23:30")
     for index, (code, minutes) in enumerate([(40001, 20), (40002, 200), (40003, 80), (40004, 120)]):
+        stage_end = stage_start + timedelta(minutes=minutes)
         insert(
             db,
             "sleep_stage",
             samsung_id=f"stage{index}",
             session_id="A",
+            start_at=stage_start,
+            end_at=stage_end,
             stage_code=code,
             duration_min=minutes,
         )
+        stage_start = stage_end
 
     oxygen = [
         ("oxA", "2026-01-05 23:40", "2026-01-06 06:20", -180, 94, 84, 600),

@@ -24,7 +24,7 @@ code, then the bare code for a type MiSalud has not seen before.
 """
 
 
-DERIVED_VERSION: Final = 1
+DERIVED_VERSION: Final = 2
 """Version of the way ``night`` and ``day`` are calculated.
 
 Raise it whenever a column or a rule of the calculated tables changes: a database

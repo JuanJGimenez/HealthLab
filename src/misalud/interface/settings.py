@@ -7,6 +7,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Final
 
+from misalud.queries.night_detail import DEFAULT_TRACKS, TRACKS
+
 LANGUAGES: Final = ("es", "en")
 THEMES: Final = ("system", "light", "dark")
 SETTINGS_FILE: Final = "settings.json"
@@ -21,10 +23,12 @@ class Settings:
     Attributes:
         language: Interface language, ``es`` or ``en``.
         theme: ``system`` follows the computer; ``light`` and ``dark`` force one.
+        tracks: Tracks shown on the "one night" screen.
     """
 
     language: str = DEFAULT_LANGUAGE
     theme: str = DEFAULT_THEME
+    tracks: tuple[str, ...] = DEFAULT_TRACKS
 
 
 def load_settings(data_dir: Path) -> Settings:
@@ -44,9 +48,16 @@ def load_settings(data_dir: Path) -> Settings:
         return Settings()
     language = saved.get("language")
     theme = saved.get("theme")
+    tracks = saved.get("tracks")
+    chosen = (
+        tuple(str(track) for track in tracks)
+        if isinstance(tracks, list) and all(track in TRACKS for track in tracks)
+        else DEFAULT_TRACKS
+    )
     return Settings(
         language=language if language in LANGUAGES else DEFAULT_LANGUAGE,
         theme=theme if theme in THEMES else DEFAULT_THEME,
+        tracks=chosen,
     )
 
 

@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Final, Protocol, cast
 
 import misalud
+from misalud.annotations import store as annotation_store
 from misalud.config import THRESHOLDS, Paths
 from misalud.derived.rebuild import ensure_derived
 from misalud.interface.i18n import load_texts
@@ -28,6 +29,7 @@ from misalud.queries import database as database_queries
 from misalud.queries import days as day_queries
 from misalud.queries import nights as night_queries
 from misalud.queries.common import NightKind, NightScope, Period, Record
+from misalud.queries.night_detail import TRACKS, night_detail
 from misalud.storage.backup import list_backups, restore_backup
 from misalud.storage.database import Connection, open_database
 
@@ -128,6 +130,8 @@ class Api:
             "texts": load_texts(settings.language),
             "available": available,
             "night_metrics": list(night_queries.NIGHT_METRICS),
+            "tracks": list(TRACKS),
+            "shown_tracks": list(settings.tracks),
             "sustained_low_min": THRESHOLDS.sustained_low_min,
             "low_spo2_pct": THRESHOLDS.low_spo2_threshold_pct,
         }
@@ -149,6 +153,49 @@ class Api:
         settings = load_settings(self._paths.data_dir)
         save_settings(self._paths.data_dir, replace(settings, theme=theme))
         return {"theme": theme}
+
+    @_safely
+    def set_tracks(self, tracks: list[str]) -> Record:
+        """Remember which tracks the "one night" screen shows."""
+        unknown = sorted(set(tracks) - set(TRACKS))
+        if unknown:
+            msg = f"unknown tracks: {', '.join(unknown)}"
+            raise ValueError(msg)
+        shown = tuple(name for name in TRACKS if name in tracks)
+        settings = load_settings(self._paths.data_dir)
+        save_settings(self._paths.data_dir, replace(settings, tracks=shown))
+        return {"shown_tracks": list(shown)}
+
+    @_safely
+    def night(self, night_date: str) -> Record:
+        """Return one night with its tracks, its neighbours and what the user noted."""
+        day = date.fromisoformat(night_date)
+        with self._open() as connection:
+            detail = night_detail(connection, day)
+            if detail is None:
+                return {"found": False}
+            return {
+                "found": True,
+                **detail,
+                "tags": annotation_store.list_tags(connection),
+                "annotations": annotation_store.day_annotations(connection, day),
+            }
+
+    @_safely
+    def set_tag(self, day: str, tag_id: int, present: bool) -> Record:
+        """Mark or unmark a date with a tag and return what is noted on it."""
+        when = date.fromisoformat(day)
+        with self._open() as connection:
+            annotation_store.set_tag(connection, when, tag_id, present)
+            return {"annotations": annotation_store.day_annotations(connection, when)}
+
+    @_safely
+    def set_note(self, day: str, text: str) -> Record:
+        """Save the free note of a date and return what is noted on it."""
+        when = date.fromisoformat(day)
+        with self._open() as connection:
+            annotation_store.set_note(connection, when, text)
+            return {"annotations": annotation_store.day_annotations(connection, when)}
 
     @_safely
     def dashboard(self, period: str, nights: str) -> Record:

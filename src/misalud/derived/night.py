@@ -91,10 +91,15 @@ oxygen_interval AS (
 skin AS {
     _window_join(
         "skin_temperature",
-        "r.temperature_c AS skin_temp_c, r.temperature_c - r.baseline_c AS skin_temp_vs_baseline_c",
+        "r.samsung_id AS skin_id, r.temperature_c AS skin_temp_c, r.baseline_c AS skin_baseline_c, "
+        "r.temperature_c - r.baseline_c AS skin_temp_vs_baseline_c",
     )
 },
-breathing AS {_window_join("respiratory_rate", "r.rate_avg AS respiratory_rate_avg")},
+breathing AS {
+    _window_join(
+        "respiratory_rate", "r.samsung_id AS breathing_id, r.rate_avg AS respiratory_rate_avg"
+    )
+},
 snoring AS (
     SELECT m.night_date, sum(e.duration_s) / 60 AS snoring_min, count(*) AS snoring_events
     FROM main m JOIN snoring_event e
@@ -127,6 +132,7 @@ SELECT
     m.samsung_id AS session_id,
     m.start_at,
     m.end_at,
+    CAST(m.utc_offset_min AS INTEGER) AS utc_offset_min,
     round(m.duration_min / 60, 2) AS hours,
     m.fragment_count,
     m.total_min - m.duration_min AS extra_sleep_min,
@@ -165,7 +171,11 @@ SELECT
     workout.exercise_count,
     workout.exercise_types,
     steps_day.steps,
-    tension.stress_avg
+    tension.stress_avg,
+    oxygen.spo2_id,
+    skin.skin_id,
+    skin.skin_baseline_c,
+    breathing.breathing_id
 FROM main m
 LEFT JOIN stage ON stage.session_id = m.samsung_id
 LEFT JOIN oxygen USING (night_date)

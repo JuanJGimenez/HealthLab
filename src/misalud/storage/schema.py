@@ -352,3 +352,18 @@ EXERCISE_TYPE_CODES: Final = (
     (14003, "circuit", False),
 )
 """Standard exercise codes seen so far. Samsung does not export their names."""
+
+BUILTIN_TAG_KEYS: Final = (
+    "alcohol",
+    "late_dinner",
+    "nasal_congestion",
+    "nap",
+    "illness",
+    "travel",
+    "medication",
+    "intense_training",
+)
+"""Tags the app ships with (design decision 19). The interface translates them."""
+
+NOTE_TAG_KEY: Final = "note"
+"""Reserved tag that carries the free note of a date. It is never shown as a tag."""

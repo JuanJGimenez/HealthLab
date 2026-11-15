@@ -18,14 +18,22 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src" / "misalud"
 
 
 def test_settings_start_with_defaults_and_survive_a_restart(tmp_path: Path) -> None:
-    assert load_settings(tmp_path) == Settings(language="es", theme="system")
-    save_settings(tmp_path / "data", Settings(language="en", theme="dark"))
-    assert load_settings(tmp_path / "data") == Settings(language="en", theme="dark")
+    defaults = ("stages", "oxygen", "pulse", "snoring")
+    assert load_settings(tmp_path) == Settings(language="es", theme="system", tracks=defaults)
+    chosen = Settings(language="en", theme="dark", tracks=("oxygen", "movement"))
+    save_settings(tmp_path / "data", chosen)
+    assert load_settings(tmp_path / "data") == chosen
 
 
 @pytest.mark.parametrize(
     "content",
-    ["not json", "[1, 2]", json.dumps({"language": "fr", "theme": "neon"}), json.dumps({})],
+    [
+        "not json",
+        "[1, 2]",
+        json.dumps({"language": "fr", "theme": "neon", "tracks": ["oxygen", "aura"]}),
+        json.dumps({"tracks": "oxygen"}),
+        json.dumps({}),
+    ],
 )
 def test_damaged_or_unknown_settings_fall_back_to_defaults(tmp_path: Path, content: str) -> None:
     (tmp_path / "settings.json").write_text(content, encoding="utf-8")

@@ -260,3 +260,44 @@ def test_a_backup_is_restored_by_name_only(api: Api, dialogs: FakeDialogs, tmp_p
     )
     assert api.restore_backup(backup.name) == {"ok": True, "restored": backup.name}
     assert api.bootstrap()["available"]["nights"] == 3
+
+
+def test_one_night_comes_with_tracks_tags_and_annotations(
+    api: Api, dialogs: FakeDialogs, tmp_path: Path
+) -> None:
+    do_import(api, dialogs, tmp_path, 6)
+    night = api.night("2026-01-02")
+    assert (night["ok"], night["found"]) == (True, True)
+    assert (night["previous"], night["next"]) == ("2026-01-01", "2026-01-03")
+    assert night["night"]["night_date"] == "2026-01-02"
+    assert len(night["tracks"]["stages"]) > 0
+    assert len(night["tracks"]["pulse"]) > 0
+    assert night["tracks"]["movement"] == []
+    assert len(night["tags"]) == 8
+    assert night["annotations"] == {"tags": [], "note": None}
+    assert api.night("2030-01-01") == {"ok": True, "found": False}
+    assert api.night("yesterday")["ok"] is False
+
+
+def test_tags_and_notes_are_saved_from_the_night_screen(
+    api: Api, dialogs: FakeDialogs, tmp_path: Path
+) -> None:
+    do_import(api, dialogs, tmp_path, 4)
+    assert api.set_tag("2026-01-02", 1, True)["annotations"] == {"tags": [1], "note": None}
+    noted = api.set_note("2026-01-02", "cena con amigos")
+    assert noted == {"ok": True, "annotations": {"tags": [1], "note": "cena con amigos"}}
+    assert api.night("2026-01-02")["annotations"]["note"] == "cena con amigos"
+    assert api.set_tag("2026-01-02", 1, False)["annotations"]["tags"] == []
+    assert api.set_tag("2026-01-02", 99, True)["error"] == "AnnotationError: unknown tag: 99"
+    do_import(api, dialogs, tmp_path, 6)
+    assert api.night("2026-01-02")["annotations"]["note"] == "cena con amigos"
+
+
+def test_the_shown_tracks_are_remembered(api: Api) -> None:
+    boot = api.bootstrap()
+    assert boot["shown_tracks"] == ["stages", "oxygen", "pulse", "snoring"]
+    assert len(boot["tracks"]) == 8
+    chosen = api.set_tracks(["movement", "oxygen"])
+    assert chosen == {"ok": True, "shown_tracks": ["oxygen", "movement"]}
+    assert api.bootstrap()["shown_tracks"] == ["oxygen", "movement"]
+    assert api.set_tracks(["aura"])["error"] == "ValueError: unknown tracks: aura"

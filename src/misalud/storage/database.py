@@ -16,9 +16,11 @@ import duckdb
 
 from misalud.storage.errors import SchemaVersionError
 from misalud.storage.schema import (
+    BUILTIN_TAG_KEYS,
     CONTROL_STATEMENTS,
     DETAIL_TABLES,
     EXERCISE_TYPE_CODES,
+    NOTE_TAG_KEY,
     OWN_STATEMENTS,
     SLEEP_STAGE_CODES,
 )
@@ -37,7 +39,22 @@ def _create_version_1(connection: Connection) -> None:
     connection.executemany("INSERT INTO exercise_type_code VALUES (?, ?, ?)", EXERCISE_TYPE_CODES)
 
 
-MIGRATIONS: Final[tuple[Migration, ...]] = (_create_version_1,)
+def _add_builtin_tags(connection: Connection) -> None:
+    """Version 2: mark which tags ship with the app and add them.
+
+    A built-in tag starts with its key as its name; the interface shows the
+    translated name until the user renames it.
+    """
+    connection.execute("ALTER TABLE tag ADD COLUMN builtin_key VARCHAR")
+    for key in (*BUILTIN_TAG_KEYS, NOTE_TAG_KEY):
+        connection.execute(
+            """INSERT INTO tag (tag_id, name, is_active, builtin_key)
+            SELECT coalesce(max(tag_id), 0) + 1, ?, TRUE, ? FROM tag""",
+            [key, key],
+        )
+
+
+MIGRATIONS: Final[tuple[Migration, ...]] = (_create_version_1, _add_builtin_tags)
 """Migration ``i`` takes the database from version ``i`` to version ``i + 1``."""
 
 

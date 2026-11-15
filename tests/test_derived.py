@@ -168,7 +168,8 @@ def test_calculated_tables_are_rebuilt_only_when_missing_or_out_of_date(
         assert ensure_derived(connection) is True
         assert ensure_derived(connection) is False
         assert connection.execute("SELECT count(*) FROM night").fetchall() == [(3,)]
-        monkeypatch.setattr(rebuild, "DERIVED_VERSION", 2)
+        newer = rebuild.DERIVED_VERSION + 1
+        monkeypatch.setattr(rebuild, "DERIVED_VERSION", newer)
         assert ensure_derived(connection) is True
-        assert connection.execute("SELECT version FROM derived_version").fetchall() == [(2,)]
+        assert connection.execute("SELECT version FROM derived_version").fetchall() == [(newer,)]
         assert ensure_derived(connection) is False
