@@ -16,6 +16,7 @@ import pandas as pd
 from misalud.reading.errors import ReadingError
 from misalud.transform.activity import (
     transform_activity_summary,
+    transform_custom_exercises,
     transform_exercise,
     transform_movement,
     transform_steps,
@@ -50,6 +51,7 @@ DOMAINS: Final[dict[str, Transformer]] = {
     "stress": transform_stress,
     "ecg": transform_ecg,
     "exercise": transform_exercise,
+    "custom_exercise": transform_custom_exercises,
     "weight": transform_weight,
     "steps": transform_steps,
     "activity_summary": transform_activity_summary,
@@ -69,6 +71,7 @@ DOMAIN_SOURCES: Final[dict[str, tuple[str, ...]]] = {
     "stress": ("stress",),
     "ecg": ("ecg",),
     "exercise": ("exercise",),
+    "custom_exercise": ("exercise.custom_exercise",),
     "weight": ("weight",),
     "steps": ("step_daily_trend",),
     "activity_summary": ("activity.day_summary",),

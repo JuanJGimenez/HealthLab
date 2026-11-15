@@ -72,6 +72,8 @@ def test_the_first_confirmed_import_fills_the_database_without_a_backup(
     assert result.backup is None
     assert result.summary.import_id == 1
     assert result.summary.plan == prepared.plan
+    assert (result.derived.nights, result.derived.days) == (3, 4)
+    assert count(paths, "SELECT count(*) FROM night") == 3
     assert count(paths, "SELECT count(*) FROM sleep_session") == 4
     assert count(paths, "SELECT count(*) FROM import_failure") == len(prepared.transformed.failures)
     assert count(paths, "SELECT count(*) FROM validation_issue") == 1

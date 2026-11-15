@@ -20,6 +20,7 @@ from misalud.transform.common import (
     number_column,
     prepare_timed,
     reject_out_of_range,
+    reject_repeated_spans,
     report,
     require_columns,
     text_column,
@@ -69,6 +70,7 @@ def transform_skin_temperature(source: Source) -> DomainResult:
         exported_at=source.exported_at,
         issues=result.issues,
     )
+    nights = reject_repeated_spans(nights, table="skin_temperature", issues=result.issues)
     names = {
         "temperature": "temperature_c",
         "baseline": "baseline_c",
@@ -140,6 +142,7 @@ def transform_respiratory_rate(source: Source) -> DomainResult:
         exported_at=source.exported_at,
         issues=result.issues,
     )
+    nights = reject_repeated_spans(nights, table="respiratory_rate", issues=result.issues)
     nights["rate_avg"] = number_column(nights, "average")
     nights["lower_limit"] = number_column(nights, "lower_limit")
     nights["upper_limit"] = number_column(nights, "upper_limit")

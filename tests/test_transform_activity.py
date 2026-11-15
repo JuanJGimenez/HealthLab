@@ -6,13 +6,14 @@ import pandas as pd
 
 from misalud.transform.activity import (
     transform_activity_summary,
+    transform_custom_exercises,
     transform_exercise,
     transform_movement,
     transform_steps,
     transform_vitality,
     transform_weight,
 )
-from misalud.transform.common import KEPT
+from misalud.transform.common import KEPT, REJECTED
 from tests.support.fake_source import FakeSource, epoch_ms, raw, timed
 
 STEPS = "step_daily_trend"
@@ -215,3 +216,22 @@ def test_movement_becomes_one_row_per_minute() -> None:
     assert list(movement.columns) == ["start_utc", "start_at", "activity_level"]
     assert movement["activity_level"].tolist() == [1, 3]
     assert movement["start_at"][0] == pd.Timestamp("2026-01-01 23:30")
+
+
+def test_custom_exercise_types_give_a_name_to_each_custom_id() -> None:
+    rows: list[dict[str, str | None]] = [
+        {"custom_id": "b_2", "custom_name": "Yoga", "create_time": "2025-04-01 10:00:00.000"},
+        {"custom_id": "a_1", "custom_name": "Crossfit", "create_time": "2025-03-30 10:00:00.000"},
+        {"custom_id": "a_1", "custom_name": "CrossFit", "create_time": "2025-03-31 10:00:00.000"},
+        {"custom_id": None, "custom_name": "Lost", "create_time": "2025-04-02 10:00:00.000"},
+        {"custom_id": "c_3", "custom_name": None, "create_time": "2025-04-03 10:00:00.000"},
+    ]
+    result = transform_custom_exercises(FakeSource(tables={"exercise.custom_exercise": raw(rows)}))
+    types = result.tables["exercise_custom_type"]
+    assert types["custom_id"].tolist() == ["a_1", "b_2"]
+    assert types["name"].tolist() == ["CrossFit", "Yoga"]
+    assert types["created_at"][0] == pd.Timestamp("2025-03-31 10:00")
+    assert [(i.key, i.rule, i.action) for i in result.issues] == [
+        ("?", "missing_id_or_name", REJECTED),
+        ("c_3", "missing_id_or_name", REJECTED),
+    ]

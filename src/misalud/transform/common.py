@@ -527,3 +527,31 @@ def unique_within_parent(points: pd.DataFrame) -> pd.DataFrame:
     """
     unique = points.drop_duplicates(["parent_id", "start_utc"], keep="last")
     return unique.reset_index(drop=True)
+
+
+def reject_repeated_spans(
+    frame: pd.DataFrame, *, table: str, issues: list[ValidationIssue]
+) -> pd.DataFrame:
+    """Keep one night record per exact start and end, the first one Samsung created.
+
+    Samsung sometimes writes, days later, further records stamped with the start
+    and end of a night it had already recorded, each with different values. The
+    record created right after the night is the genuine one; the later ones
+    cannot be placed on any night and are rejected.
+
+    Args:
+        frame: Output of ``prepare_timed``, optionally with ``create_time``.
+        table: MiSalud table, for the issues.
+        issues: List the issues are appended to.
+
+    Returns:
+        The rows without repeated spans, in their original order.
+    """
+    by_creation = frame.assign(created=text_column(frame, "create_time")).sort_values(
+        "created", kind="stable", na_position="last"
+    )
+    repeated = by_creation.duplicated(["start_at", "end_at"], keep="first").reindex(frame.index)
+    report(
+        issues, frame, repeated, table=table, rule="repeated_night_span", value=frame["start_time"]
+    )
+    return frame[~repeated].reset_index(drop=True)

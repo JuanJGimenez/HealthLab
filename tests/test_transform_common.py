@@ -21,6 +21,7 @@ from misalud.transform.common import (
     prepare_daily,
     prepare_timed,
     reject_out_of_range,
+    reject_repeated_spans,
     require_columns,
     text_column,
     to_number,
@@ -354,3 +355,41 @@ def test_a_moment_repeated_inside_one_parent_is_stored_once() -> None:
     unique = unique_within_parent(points)
     assert unique["parent_id"].tolist() == ["a", "b"]
     assert unique["v"].tolist() == [2.0, 3.0]
+
+
+def test_a_night_span_recorded_again_later_is_rejected() -> None:
+    rows = [
+        timed("late", create_time="2026-01-05 10:00:00.000"),
+        timed("genuine", create_time="2026-01-02 10:00:00.000"),
+        timed(
+            "other",
+            start="2026-01-03 02:30:00.000",
+            end="2026-01-03 09:30:00.000",
+            create_time="2026-01-03 10:00:00.000",
+        ),
+        timed("undated", create_time=None),
+    ]
+    issues: list[ValidationIssue] = []
+    frame = prepare_timed(
+        raw(rows), samsung_table="x", table="t", exported_at=EXPORTED_AT, issues=issues
+    )
+    kept = reject_repeated_spans(frame, table="t", issues=issues)
+    assert kept["samsung_id"].tolist() == ["genuine", "other"]
+    assert rules(issues) == [
+        ("late", "repeated_night_span", REJECTED),
+        ("undated", "repeated_night_span", REJECTED),
+    ]
+
+
+def test_without_creation_times_the_first_row_of_a_repeated_span_stays() -> None:
+    issues: list[ValidationIssue] = []
+    frame = prepare_timed(
+        raw([timed("first"), timed("second")]),
+        samsung_table="x",
+        table="t",
+        exported_at=EXPORTED_AT,
+        issues=issues,
+    )
+    assert reject_repeated_spans(frame, table="t", issues=issues)["samsung_id"].tolist() == [
+        "first"
+    ]

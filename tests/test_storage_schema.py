@@ -9,7 +9,7 @@ from tests.support.synthetic_export import SyntheticExport
 
 
 def test_every_table_has_a_key_and_a_time_column_among_its_columns() -> None:
-    assert len(DETAIL_TABLES) == 20
+    assert len(DETAIL_TABLES) == 21
     for name, spec in DETAIL_TABLES.items():
         assert spec.name == name
         assert spec.key, name

@@ -60,7 +60,24 @@ La base guarda su número de versión de esquema. Al abrirla, MiSalud aplica las
 falten, todas juntas o ninguna, y se niega a abrir una base creada por una versión más nueva.
 
 `pipeline.importing` conduce una importación en dos pasos: `prepare_import` lee, transforma y arma
-la vista previa sin guardar ningún registro; `confirm_import` respalda, fusiona y archiva el zip.
+la vista previa sin guardar ningún registro; `confirm_import` respalda, fusiona, recalcula las
+tablas `night` y `day` y archiva el zip.
+
+## Módulos de cálculo y de consulta
+
+| Capa | Módulo | Responsabilidad |
+|---|---|---|
+| `derived` | `night` | Una fila por noche real, con cada señal unida por ventana de tiempo |
+| `derived` | `day` | Una fila por día, enlazada con la noche anterior y la siguiente |
+| `derived` | `rebuild` | Recalcular las dos tablas completas, en una transacción |
+| `queries` | `common` | Filtro de período y resultados como datos simples |
+| `queries` | `nights` | Lista de noches, resumen de oxígeno, peores noches, promedios por mes y por día de la semana, relación entre dos métricas |
+| `queries` | `days` | Lista de días y promedios por mes |
+| `queries` | `database` | Historial de importaciones, tamaño de cada tabla y período disponible |
+
+Las consultas devuelven listas y diccionarios con texto, números y vacíos, listos para pasar a la
+ventana. Una pantalla solo puede pedir métricas de una lista fija, porque el nombre de la métrica
+termina dentro de la consulta.
 
 ## Flujo de una importación
 

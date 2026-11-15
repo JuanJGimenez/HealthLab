@@ -8,9 +8,9 @@ Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica
 
 ## Estado
 
-Versión 0.4.0: lectura, transformación, base de datos y fusión (etapas 1 a 3). Importa una
-exportación completa a su base, fusiona las siguientes sin perder datos, respalda antes de
-cada fusión y registra cada importación. Todavía no calcula resúmenes ni abre ventana.
+Versión 0.5.0: datos completos, de la exportación a las consultas (etapas 1 a 4). Importa una
+exportación a su base, fusiona las siguientes sin perder datos, arma una fila por noche y por
+día y responde las preguntas de las pantallas. Todavía no abre ventana.
 El plan completo y las decisiones de diseño están en `docs/`.
 
 ## Requisitos

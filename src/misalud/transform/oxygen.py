@@ -20,6 +20,7 @@ from misalud.transform.common import (
     number_column,
     prepare_timed,
     reject_out_of_range,
+    reject_repeated_spans,
     require_columns,
     unique_within_parent,
 )
@@ -74,6 +75,7 @@ def transform_oxygen(source: Source) -> DomainResult:
         exported_at=source.exported_at,
         issues=result.issues,
     )
+    nights = reject_repeated_spans(nights, table="spo2_night", issues=result.issues)
     nights["spo2_avg"] = number_column(nights, "spo2")
     nights["spo2_min"] = number_column(nights, "min")
     nights["spo2_max"] = number_column(nights, "max")

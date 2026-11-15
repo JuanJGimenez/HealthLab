@@ -3,6 +3,35 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [0.5.0] - 2026-11-15
+
+Etapa 4 del plan: tablas calculadas y consultas. Después de cada importación la app arma una fila
+por noche y una por día, y ya puede responder las preguntas de las pantallas. Todavía no abre
+ventana.
+
+### Agregado
+
+- `derived`: tablas `night` y `day`, recalculadas completas después de cada importación.
+- `queries`: lista de noches y de días, resumen de oxígeno, peores noches, promedios por mes y por
+  día de la semana, relación entre dos métricas con correlación de Spearman, y datos del panel
+  "Base de datos".
+- `exercise_custom_type`: nombres de los tipos de ejercicio creados por el usuario.
+- `pipeline.importing`: recalcula `night` y `day` al confirmar una importación.
+
+### Comprobado con datos reales
+
+- Septiembre de 2026: `night` da las mismas 503 noches que el prototipo, con los mismos valores,
+  salvo la variabilidad y el pulso de 8 noches registradas en otro huso.
+- Noviembre de 2026: 563 noches y 624 días; recalcular tarda menos de un segundo y las consultas
+  de todas las vistas juntas, 0,04 segundos.
+
+### Corregido
+
+- La variabilidad y el pulso nocturno de las noches registradas en otro huso se calculan sobre el
+  horario correcto.
+- Se rechazan los registros nocturnos que repiten el inicio y el fin de una noche ya registrada
+  (12 de respiración).
+
 ## [0.4.0] - 2026-11-15
 
 Etapa 3 del plan: base de datos y fusión. La app ya guarda una exportación en su base, fusiona

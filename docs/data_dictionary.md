@@ -195,7 +195,7 @@ Una fila por sesión grabada. Origen: `com.samsung.shealth.exercise`. Clave: `sa
 | `start_at`, `end_at` | fecha y hora | local | `start_time`, `end_time` | Verificado |
 | `duration_min` | número | minutos | `duration`, que viene en milisegundos | Verificado |
 | `type_code` | entero | | `exercise_type` | Verificado |
-| `custom_id` | texto | | `custom_id` → `exercise_type_code` | Verificado |
+| `custom_id` | texto | | `custom_id` → `exercise_custom_type` | Verificado |
 | `calorie_kcal` | número | kcal | `calorie` | Verificado |
 | `distance_m` | número | metros | `distance` | Verificado |
 | `mean_hr`, `max_hr`, `min_hr` | número | latidos por minuto | `mean_heart_rate`, `max_heart_rate`, `min_heart_rate` | Verificado |
@@ -204,6 +204,12 @@ Una fila por sesión grabada. Origen: `com.samsung.shealth.exercise`. Clave: `sa
 
 El pulso segundo a segundo de cada sesión está en el archivo `live_data`; no se importa en la versión 1.
 Los archivos `additional` no traen series ni repeticiones.
+
+### exercise_custom_type
+
+Una fila por tipo de ejercicio creado por el usuario, por ejemplo CrossFit. Origen:
+`com.samsung.shealth.exercise.custom_exercise`. Clave: `custom_id`. Columnas `name` y `created_at` (UTC).
+Una sesión de un tipo propio trae `type_code` 0 y su `custom_id`. Verificado.
 
 ### ecg
 
@@ -285,7 +291,7 @@ Las señales nocturnas no traen vínculo con el sueño. Se unen por ventana: el 
 
 | Grupo | Columnas | Origen |
 |---|---|---|
-| Sueño | `night_date`, `session_id`, `start_at`, `end_at`, `hours`, `fragment_count`, `extra_sleep_min`, `score`, `efficiency_pct`, `bedtime_hour`, `weekday`, `is_weekend_night` | `sleep_session` |
+| Sueño | `night_date`, `session_id`, `start_at`, `end_at`, `hours`, `fragment_count`, `extra_sleep_min`, `score`, `efficiency_pct`, `physical_recovery`, `mental_recovery`, `movement_awakening`, `bedtime_hour`, `weekday`, `is_weekend_night` | `sleep_session` |
 | Etapas | `awake_min`, `light_min`, `deep_min`, `rem_min` | `sleep_stage` |
 | Oxígeno | `spo2_avg`, `spo2_min`, `low_minutes`, `intervals_below_90`, `intervals_below_85`, `spo2_recorded_hours` | `spo2_night`, `spo2_interval` |
 | Corazón | `hrv_rmssd_ms`, `hrv_sdnn_ms`, `night_hr_avg`, `night_hr_min` | `hrv_window`, `heart_rate_minute` |
@@ -293,14 +299,43 @@ Las señales nocturnas no traen vínculo con el sueño. Se unen por ventana: el 
 | Ronquido | `snoring_min`, `snoring_events`; vacío si la noche no se grabó | `snoring_event` |
 | Contexto del día | `exercise_min`, `exercise_count`, `exercise_types`, `steps`, `stress_avg` | `exercise`, `steps_day`, `stress` |
 
-`is_weekend_night` es verdadero para viernes y sábado. `bedtime_hour` supera 24 cuando la persona se acuesta
-después de medianoche. Las cifras de oxígeno se informan solo para noches con `spo2_recorded_hours` de 3 o más.
+`weekday` es un número: 1 para lunes y 7 para domingo, según el día en que empezó la noche; la interfaz
+lo traduce. `is_weekend_night` es verdadero para viernes y sábado. `bedtime_hour` supera 24 cuando la persona se acuesta
+después de medianoche. Las cifras de oxígeno se informan solo para noches con `spo2_recorded_hours` de 3 o más; la tabla guarda
+el dato de todas las noches y la capa `queries` aplica la regla.
+
+Otras reglas de cálculo:
+
+- Todas las comparaciones de tiempo se hacen en UTC, para que una noche en otro huso se una bien.
+- `hrv_rmssd_ms` y `hrv_sdnn_ms` son la mediana de las ventanas de la noche; `night_hr_avg` y
+  `night_hr_min`, el promedio y el mínimo del pulso por minuto entre el inicio y el fin del sueño.
+- `intervals_below_90` y `intervals_below_85` cuentan los intervalos de 10 minutos cuyo mínimo quedó bajo
+  90 % y bajo 85 %.
+- El contexto del día toma el ejercicio, los pasos y el estrés de la fecha `night_date`.
+- `exercise_types` lista los tipos del día: el nombre propio si es un tipo creado por el usuario, el
+  nombre del código estándar si se conoce, o `type <código>` si no.
+
+Sobre la exportación de septiembre de 2026, `night` da las mismas 503 noches que el prototipo y los
+mismos valores en todas las columnas, salvo la variabilidad y el pulso de 8 noches registradas en otro
+huso, que el prototipo calculaba con el huso equivocado.
 
 ### day
 
-Una fila por día del calendario. Columnas definidas en la sección "Vista del día" del documento de diseño:
-actividad, ejercicio grabado, pulso, estrés, energía y los enlaces `previous_night_date` y `next_night_date`.
-El detalle de columnas se completa al construir la etapa 4.
+Una fila por cada día del calendario que tiene algún registro diurno.
+
+| Grupo | Columnas | Origen |
+|---|---|---|
+| Actividad | `day`, `steps`, `active_min`, `distance_m`, `floors`, `active_calorie_kcal` | `steps_day`, `activity_day` |
+| Ejercicio grabado | `exercise_min`, `exercise_count`, `exercise_types` | `exercise` |
+| Pulso | `hr_avg`, `hr_min`, `hr_max` | `heart_rate_minute`, por hora local |
+| Estrés | `stress_avg`, `stress_count` | `stress` |
+| Energía | `energy_score` | `vitality_day` |
+| Enlaces | `previous_night_date`, `next_night_date` | `night` |
+
+`steps` toma el total de `steps_day` y, si falta, el de `activity_day`. `previous_night_date` es la noche de
+la que la persona se despertó ese día; `next_night_date`, la que empezó ese día. Quedan vacíos si no hubo
+noche registrada. El diseño pedía también calorías en reposo: la exportación no las separa por día, así
+que la columna no existe.
 
 ## 3. Tablas propias (la fusión no las toca)
 
@@ -325,7 +360,7 @@ El detalle de columnas se completa al construir la etapa 4.
 
 `previous_values` guarda los valores anteriores como texto JSON. Los nombres de los códigos se guardan
 en inglés (`light`, `walking`); la interfaz los traduce. Los ejercicios personalizados, como CrossFit,
-se resolverán en la etapa 4 desde la tabla de ejercicios personalizados de la exportación.
+se resuelven con la tabla `exercise_custom_type`.
 
 ### Códigos de etapa de sueño
 
@@ -364,6 +399,7 @@ Samsung no incluye en la exportación el diccionario de sus códigos estándar.
 | `respiratory_rate`, `respiratory_rate_minute` | Entre 4 y 40 respiraciones por minuto | Registro rechazado |
 | `respiratory_rate`, `respiratory_rate_minute` | Valor 0 | Se guarda vacío; en el resumen de la noche se informa |
 | `sleep_stage` | Código fuera del diccionario | Se guarda el código y se informa |
+| `spo2_night`, `skin_temperature`, `respiratory_rate` | Registro con el mismo inicio y fin que otro | Queda el primero que creó Samsung; los demás se rechazan |
 | Tablas diarias | Dos filas para el mismo día | Vale la última; la otra se informa |
 | Series de detalle | Archivo de detalle ausente, vacío o ilegible | El registro madre se guarda y se informa |
 
@@ -372,6 +408,10 @@ se repite cuando se viaja hacia el oeste: en la exportación de septiembre de 20
 pulso comparten hora local con otro minuto distinto. `start_at` conserva la hora local para mostrar.
 
 Los códigos de ejercicio se guardan tal como vienen; sus nombres se resuelven al consultar.
+
+Samsung a veces escribe, días después, más registros de respiración con el inicio y el fin de una noche ya
+registrada y valores distintos: 12 registros en la exportación de noviembre de 2026. No se pueden ubicar
+en ninguna noche, así que se conserva el que Samsung creó a la mañana siguiente.
 
 ## 6. Tablas de Samsung de ventana corta
 
@@ -387,5 +427,4 @@ Su primer día disponible avanza en cada exportación. Ninguna alimenta la versi
 ## 7. Pendientes de este diccionario
 
 - Confirmar el significado de `movement_awakening`, `activity_level`, `is_outlier` y de los códigos de electrocardiograma.
-- Completar las columnas de la tabla `day`.
 - Conseguir los nombres oficiales de los códigos estándar de ejercicio.

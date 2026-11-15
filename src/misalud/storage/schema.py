@@ -198,6 +198,12 @@ _SPECS: Final = (
         },
     ),
     _spec(
+        "exercise_custom_type",
+        ("custom_id",),
+        "created_at",
+        {"custom_id": TEXT, "name": TEXT, "created_at": MOMENT},
+    ),
+    _spec(
         "weight",
         _ID,
         "measured_at",

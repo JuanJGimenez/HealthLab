@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 
 from misalud.config import Paths
+from misalud.derived.rebuild import DerivedCounts, rebuild_derived
 from misalud.reading.archive import open_export
 from misalud.reading.compatibility import CompatibilityReport, compare_with_contracts
 from misalud.reading.source import ExportSource
@@ -51,10 +52,12 @@ class ImportResult:
         summary: Import identifier and what the merge did.
         backup: Copy of the database taken before merging; ``None`` on the
             first import, when there was nothing to protect.
+        derived: Number of nights and days after recomputing the calculated tables.
     """
 
     summary: ImportSummary
     backup: Path | None
+    derived: DerivedCounts
 
 
 def prepare_import(chosen: Path, paths: Paths, work_dir: Path) -> PreparedImport:
@@ -106,9 +109,10 @@ def confirm_import(
 ) -> ImportResult:
     """Merge a prepared import into the database.
 
-    Order of work: back the database up, merge in one transaction, file the
-    original archive, then drop the backups and archives no longer needed. If
-    the merge fails, the database is unchanged and the backup stays.
+    Order of work: back the database up, merge in one transaction, recompute
+    the calculated tables, file the original archive, then drop the backups and
+    archives no longer needed. If the merge fails, the database is unchanged and
+    the backup stays.
 
     Args:
         prepared: Result of ``prepare_import``.
@@ -134,8 +138,9 @@ def confirm_import(
             failures=prepared.transformed.failures,
             now=moment,
         )
+        derived = rebuild_derived(connection)
         if prepared.archive is not None:
             archive_export(prepared.archive, paths.exports_dir)
         prune_exports(connection, paths.exports_dir)
     prune_backups(paths.backups_dir)
-    return ImportResult(summary=summary, backup=backup)
+    return ImportResult(summary=summary, backup=backup, derived=derived)

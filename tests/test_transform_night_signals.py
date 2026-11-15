@@ -33,7 +33,13 @@ def test_skin_temperature_gives_a_night_summary_and_a_minute_series() -> None:
             upper_bound="35.0",
             binning_data="night.json",
         ),
-        timed("cold", temperature="10.0", binning_data="cold.json"),
+        timed(
+            "cold",
+            start="2026-01-05 02:30:00.000",
+            end="2026-01-05 09:30:00.000",
+            temperature="10.0",
+            binning_data="cold.json",
+        ),
     ]
     source = FakeSource(
         tables={"skin_temperature": raw(rows)},
@@ -99,7 +105,9 @@ def test_respiratory_rate_stores_zero_as_no_measurement() -> None:
             average="0.0",
             is_outlier="True",
         ),
-        timed("absurd", average="90"),
+        timed(
+            "absurd", start="2026-01-05 02:30:00.000", end="2026-01-05 09:30:00.000", average="90"
+        ),
     ]
     source = FakeSource(
         tables={"respiratory_rate": raw(rows)},

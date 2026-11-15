@@ -73,7 +73,19 @@ def test_overnight_records_become_nights_and_spot_measurements_are_left_out() ->
 
 def test_impossible_values_are_rejected_in_nights_and_intervals() -> None:
     source = FakeSource(
-        tables={TABLE: raw([oxygen("good"), oxygen("bad", min="12")])},
+        tables={
+            TABLE: raw(
+                [
+                    oxygen("good"),
+                    oxygen(
+                        "bad",
+                        start_time="2026-01-05 02:30:00.000",
+                        end_time="2026-01-05 09:30:00.000",
+                        min="12",
+                    ),
+                ]
+            )
+        },
         details={
             (TABLE, "good.json"): [
                 interval("2026-01-02 02:30", 91),

@@ -1,4 +1,4 @@
-"""Activity domain: exercise, weight, steps, daily activity, energy score and movement."""
+"""Activity domain: exercise, custom exercise types, weight, steps, daily activity and movement."""
 
 from __future__ import annotations
 
@@ -14,8 +14,10 @@ from misalud.transform.common import (
     ValidationIssue,
     expand_details,
     number_column,
+    parse_utc,
     prepare_daily,
     prepare_timed,
+    report,
     require_columns,
     text_column,
     unique_by_utc_start,
@@ -77,6 +79,49 @@ def transform_exercise(source: Source) -> DomainResult:
         *names.values(),
     ]
     result.tables["exercise"] = rows.sort_values("start_at")[columns].reset_index(drop=True)
+    return result
+
+
+def transform_custom_exercises(source: Source) -> DomainResult:
+    """Build ``exercise_custom_type`` from an export.
+
+    Samsung lets the user define their own exercise types, CrossFit for example.
+    Sessions of such a type carry ``exercise_type`` 0 and a ``custom_id``; this
+    table gives the name the user chose.
+
+    Args:
+        source: The export.
+
+    Returns:
+        One row per custom type and the issues found. When an id repeats, the
+        last row in file order wins.
+
+    Raises:
+        TableMissingError: If the export lacks the table.
+        TransformError: If a required column is missing.
+    """
+    result = DomainResult()
+    raw = source.read("exercise.custom_exercise")
+    require_columns(raw, "exercise.custom_exercise", ["custom_id", "custom_name", "create_time"])
+    rows = pd.DataFrame(
+        {
+            "custom_id": raw["custom_id"],
+            "name": raw["custom_name"],
+            "created_at": parse_utc(raw["create_time"]),
+        }
+    )
+    unusable = rows["custom_id"].isna() | rows["name"].isna()
+    report(
+        result.issues,
+        rows.assign(custom_id=rows["custom_id"].fillna("?")),
+        unusable,
+        table="exercise_custom_type",
+        rule="missing_id_or_name",
+        value=raw["create_time"],
+        key="custom_id",
+    )
+    rows = rows[~unusable].drop_duplicates("custom_id", keep="last")
+    result.tables["exercise_custom_type"] = rows.sort_values("custom_id").reset_index(drop=True)
     return result
 
 
