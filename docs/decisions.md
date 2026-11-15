@@ -34,10 +34,13 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 26 | El detalle de una noche tiene ocho pistas, y el usuario elige cuáles ver desde la primera versión | La etapa 0 mostró que respiración, temperatura y movimiento traen serie por minuto; ayudan a leer una caída de oxígeno |
 | 27 | Una capa propia, `pipeline`, conduce la importación de punta a punta | El diseño no decía qué capa coordina el flujo; sin ella, esa lógica terminaría dentro de la interfaz |
 | 28 | El proyecto requiere Python 3.12 o superior | Las herramientas de verificación de tipos actuales ya no admiten 3.11; la app empaquetada trae su propio Python |
+| 29 | La etapa 2 se divide en 2a, lectura, y 2b, transformación | Regla del plan: una etapa que se alarga se divide; la lectura se puede comprobar sola contra las exportaciones reales |
+| 30 | Las tablas se leen como texto; convertir a números y fechas es tarea de la transformación | La capa de lectura no conoce unidades ni significados, y así ningún valor se altera por una conversión automática |
 
 ## Notas
 
 - **Decisión 4.** La etapa 0 confirmó el primer motivo. El segundo, el reproceso de sesiones de sueño, no se observó entre las exportaciones de septiembre y noviembre de 2026.
 - **Decisión 20.** La cantidad de pistas quedó reemplazada por la decisión 26.
 - **Decisión 22.** Tras la etapa 0, ninguna tabla de la primera versión es de ventana corta. El mecanismo queda disponible.
-- **Decisiones 27 y 28.** Tomadas en la etapa 1; pendientes de la confirmación del usuario.
+- **Decisiones 27 y 28.** Tomadas en la etapa 1 y aprobadas por el usuario el 15 de noviembre de 2026.
+- **Decisiones 29 y 30.** Tomadas en la etapa 2a; pendientes de la confirmación del usuario.

@@ -8,7 +8,8 @@ Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica
 
 ## Estado
 
-Versión 0.1.0: esqueleto del proyecto (etapa 1 de 10). Todavía no importa datos ni abre ventana.
+Versión 0.2.0: esqueleto y capa de lectura (etapas 1 y 2a). Abre y lee una exportación completa y
+compara su estructura con los contratos. Todavía no guarda datos ni abre ventana.
 El plan completo y las decisiones de diseño están en `docs/`.
 
 ## Requisitos

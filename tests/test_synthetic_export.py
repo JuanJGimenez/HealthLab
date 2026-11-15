@@ -29,12 +29,6 @@ def read_table(export: SyntheticExport, table: str) -> list[dict[str, str]]:
         return [dict(zip(header, row, strict=False)) for row in reader]
 
 
-@pytest.fixture
-def export(tmp_path: Path) -> SyntheticExport:
-    """A four-day export: three nights and a partial export day."""
-    return build_export(tmp_path, n_days=4)
-
-
 def test_file_names_follow_the_samsung_pattern(export: SyntheticExport) -> None:
     names = sorted(path.name for path in export.root.glob("*.csv"))
     assert len(names) == len(synth.TABLES)

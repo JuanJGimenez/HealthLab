@@ -27,6 +27,24 @@ falla si una capa importa a otra que está más arriba.
 `pipeline` se agregó en la etapa 1. El diseño describía el flujo de importación, pero no decía qué
 capa lo conduce; sin una capa propia, esa coordinación habría terminado dentro de `interface`.
 
+## Módulos de la capa de lectura
+
+| Módulo | Responsabilidad |
+|---|---|
+| `archive` | Abrir la exportación desde un zip o una carpeta, de forma segura |
+| `tables` | Listar las tablas, con sus versiones, y leerlas como texto |
+| `details` | Leer los archivos de detalle que nombran las celdas |
+| `contracts` | Cargar lo que el importador espera de cada tabla |
+| `compatibility` | Comparar una exportación con los contratos y clasificar cada diferencia |
+| `errors` | Errores propios de la lectura |
+
+Niveles del informe de compatibilidad:
+
+- **Error:** falta una tabla o una columna clave que MiSalud usa, o una columna numérica pasó a
+  texto. Esa tabla no se importa; las demás sí.
+- **Advertencia:** otro cambio en una tabla en uso, o una tabla que MiSalud no conoce.
+- **Información:** cambios en tablas que MiSalud no usa.
+
 ## Flujo de una importación
 
 1. `interface` recibe el zip elegido por el usuario y llama a `pipeline`.
