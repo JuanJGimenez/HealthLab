@@ -109,7 +109,8 @@ function tip(title, items) {
 }
 const timeAxis = () => Object.assign(axisBase(), {type: 'time', splitLine: {show: false},
   axisLabel: {color: T.ts, fontSize: 11, hideOverlap: true, formatter: value => fmonth(new Date(value).toISOString())}});
-const valueAxis = extra => Object.assign(axisBase(), {type: 'value'}, extra || {});
+const valueAxis = extra => Object.assign(axisBase(), {type: 'value',
+  axisLabel: {color: T.ts, fontSize: 11, formatter: value => fmt(value, Number.isInteger(value) ? 0 : 1)}}, extra || {});
 const categoryAxis = (labels, extra) => Object.assign(axisBase(), {type: 'category', data: labels, splitLine: {show: false}}, extra || {});
 const unitName = unit => ({name: unit, nameTextStyle: {color: T.tm, fontSize: 11, align: 'left'}});
 const markLine = (y, text, position) => ({silent: true, symbol: 'none', lineStyle: {color: T.tm, type: 'solid', width: 1},
@@ -828,6 +829,37 @@ async function openDay(day) {
   if (answer.has_night) buttons.push(el('button', {class: 'btn primary', type: 'button', id: 'day-open-night', text: t('day.open_night'), onclick: () => { closeDialog(); openNight(day); }}));
   openDialog(t('day.title', {date: fdate(day)}), body, buttons);
 }
+async function showReport() {
+  const answer = await call('report_options');
+  if (!answer.ok) return showError(answer.error);
+  const profile = answer.profile;
+  const field = (id, label, value, type) => {
+    const input = el('input', {type: type || 'text', id, maxlength: '60'});
+    input.value = value === null || value === undefined ? '' : value;
+    return [el('label', {for: id, text: t(label)}), input];
+  };
+  const periodText = $('#f-period button[aria-pressed=true]').textContent;
+  const watch = field('report-watch', 'report.watch', answer.watch_model);
+  const personal = el('div', {class: 'form', id: 'report-personal', hidden: ''}, [
+    ...field('report-name', 'report.name', profile.name), ...field('report-year', 'report.birth_year', profile.birth_year, 'number'),
+    ...field('report-sex', 'report.sex', profile.sex), ...field('report-height', 'report.height', profile.height_cm, 'number'),
+    ...field('report-weight', 'report.weight', profile.weight_kg, 'number')]);
+  const include = el('input', {type: 'checkbox', id: 'report-include'});
+  include.addEventListener('change', () => { personal.hidden = !include.checked; });
+  const done = el('span', {class: 'stat', id: 'report-done', 'aria-live': 'polite'});
+  const create = el('button', {class: 'btn primary', type: 'button', id: 'report-create', text: t('report.generate'), onclick: async () => {
+    const value = id => $('#' + id).value;
+    const result = await call('create_report', state.period, {watch_model: value('report-watch'), include_personal: include.checked,
+      name: value('report-name'), birth_year: value('report-year'), sex: value('report-sex'), height_cm: value('report-height'), weight_kg: value('report-weight')});
+    if (!result.ok) return showError(result.error);
+    done.textContent = result.saved ? t('report.saved', {name: result.file_name, pages: result.pages}) : '';
+  }});
+  openDialog(t('report.title'), [
+    el('p', {class: 'cap', text: t('report.contents')}),
+    el('div', {class: 'form'}, [el('label', {text: t('report.period')}), el('span', {class: 'stat', text: periodText}), ...watch]),
+    el('label', {class: 'check'}, [include, document.createTextNode(t('report.personal'))]),
+    personal, el('p', {class: 'note', text: t('report.privacy')}), done], [create]);
+}
 async function showTags() {
   const answer = await call('tags');
   if (!answer.ok) return showError(answer.error);
@@ -1074,6 +1106,7 @@ function wire() {
   $('#cmp-week').addEventListener('click', () => openCompare($('#cmp-a').value, shiftDay($('#cmp-a').value, -7)));
   $$('#cmp-align button').forEach(button => button.addEventListener('click', () => { state.align = button.dataset.v; if (state.compare) renderCompare(); }));
   $('#btn-tags').addEventListener('click', showTags);
+  $('#btn-report').addEventListener('click', showReport);
   $('#f-tag').addEventListener('change', event => {
     const [id, mode] = event.target.value.split(':');
     state.tag = id ? Number(id) : null;

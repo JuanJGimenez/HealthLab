@@ -3,6 +3,27 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [0.10.0] - 2026-11-15
+
+Etapa 8a del plan: el bloque base del informe para el médico.
+
+### Agregado
+
+- Informe en PDF, tamaño A4, en el idioma de la interfaz. Página 1: encabezado, resumen de
+  oxígeno nocturno y gráfico noche a noche. Página 2: las 10 noches con más tiempo bajo 90 %,
+  patrones por día de la semana y por etiqueta, y notas de método.
+- Datos personales opcionales en el encabezado, elegidos en cada informe.
+- Botón "Informe" en la app, con el período del filtro.
+
+### Corregido
+
+- Los ejes de los gráficos escribían los miles con el formato inglés.
+
+### Pendiente (etapa 8b)
+
+- Bloques opcionales (corazón, sueño, ronquido, actividad, día y noche, anotaciones) y el detalle
+  de una o dos noches elegidas.
+
 ## [0.9.0] - 2026-11-15
 
 Etapa 7 del plan: la vista del día.

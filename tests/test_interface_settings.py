@@ -20,7 +20,9 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src" / "misalud"
 def test_settings_start_with_defaults_and_survive_a_restart(tmp_path: Path) -> None:
     defaults = ("stages", "oxygen", "pulse", "snoring")
     assert load_settings(tmp_path) == Settings(language="es", theme="system", tracks=defaults)
-    chosen = Settings(language="en", theme="dark", tracks=("oxygen", "movement"))
+    chosen = Settings(
+        language="en", theme="dark", tracks=("oxygen", "movement"), watch_model="Galaxy Watch"
+    )
     save_settings(tmp_path / "data", chosen)
     assert load_settings(tmp_path / "data") == chosen
 
@@ -31,7 +33,7 @@ def test_settings_start_with_defaults_and_survive_a_restart(tmp_path: Path) -> N
         "not json",
         "[1, 2]",
         json.dumps({"language": "fr", "theme": "neon", "tracks": ["oxygen", "aura"]}),
-        json.dumps({"tracks": "oxygen"}),
+        json.dumps({"tracks": "oxygen", "watch_model": 7}),
         json.dumps({}),
     ],
 )

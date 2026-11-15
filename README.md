@@ -8,10 +8,11 @@ Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica
 
 ## Estado
 
-Versión 0.9.0 (etapas 1 a 7). Importa una exportación con vista previa, fusiona sin perder datos,
+Versión 0.10.0 (etapas 1 a 8a). Importa una exportación con vista previa, fusiona sin perder datos,
 muestra seis vistas, el detalle de cada noche con ocho pistas y la comparación de dos noches, y
 permite etiquetar fechas y filtrar por etiqueta. Tiene además la pantalla de un día y el día
-típico por hora. En español o en inglés. Falta el informe para el médico y el empaquetado.
+típico por hora, y genera el informe base para el médico en PDF. En español o en inglés. Faltan
+los bloques opcionales del informe y el empaquetado.
 
 ## Abrir la app
 

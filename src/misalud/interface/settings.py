@@ -24,11 +24,13 @@ class Settings:
         language: Interface language, ``es`` or ``en``.
         theme: ``system`` follows the computer; ``light`` and ``dark`` force one.
         tracks: Tracks shown on the "one night" screen.
+        watch_model: Watch model printed on the report, as the user last wrote it.
     """
 
     language: str = DEFAULT_LANGUAGE
     theme: str = DEFAULT_THEME
     tracks: tuple[str, ...] = DEFAULT_TRACKS
+    watch_model: str = ""
 
 
 def load_settings(data_dir: Path) -> Settings:
@@ -58,6 +60,7 @@ def load_settings(data_dir: Path) -> Settings:
         language=language if language in LANGUAGES else DEFAULT_LANGUAGE,
         theme=theme if theme in THEMES else DEFAULT_THEME,
         tracks=chosen,
+        watch_model=watch if isinstance(watch := saved.get("watch_model"), str) else "",
     )
 
 

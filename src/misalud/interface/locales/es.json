@@ -343,5 +343,19 @@
   "metric.day.hr_avg": "Día: pulso promedio",
   "metric.day.hr_min": "Día: pulso mínimo",
   "metric.day.hr_max": "Día: pulso máximo",
-  "metric.day.energy_score": "Día: puntaje de energía"
+  "metric.day.energy_score": "Día: puntaje de energía",
+  "action.report": "Informe",
+  "report.title": "Informe para el médico",
+  "report.contents": "Un PDF en tamaño A4 con el resumen de oxígeno nocturno, el gráfico noche a noche, las 10 noches con más tiempo bajo 90 %, los patrones por día de la semana y por etiqueta, y las notas de método. Presenta datos; no incluye diagnósticos ni recomendaciones.",
+  "report.period": "Período del informe",
+  "report.watch": "Modelo del reloj (opcional)",
+  "report.personal": "Incluir datos personales en el encabezado",
+  "report.name": "Nombre",
+  "report.birth_year": "Año de nacimiento",
+  "report.sex": "Sexo",
+  "report.height": "Altura (cm)",
+  "report.weight": "Peso (kg)",
+  "report.privacy": "El PDF contiene datos de salud. Se guarda donde elijas y la app no lo envía a ningún lado; compartirlo es tu decisión.",
+  "report.generate": "Generar PDF",
+  "report.saved": "Guardado como {name}, {pages} páginas."
 }

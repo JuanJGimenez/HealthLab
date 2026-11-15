@@ -343,5 +343,19 @@
   "metric.day.hr_avg": "Day: average pulse",
   "metric.day.hr_min": "Day: lowest pulse",
   "metric.day.hr_max": "Day: highest pulse",
-  "metric.day.energy_score": "Day: energy score"
+  "metric.day.energy_score": "Day: energy score",
+  "action.report": "Report",
+  "report.title": "Report for the doctor",
+  "report.contents": "An A4 PDF with the night oxygen summary, the night-by-night chart, the 10 nights with the most time under 90 %, the patterns by weekday and by tag, and the method notes. It presents data; it holds no diagnosis and no recommendation.",
+  "report.period": "Period of the report",
+  "report.watch": "Watch model (optional)",
+  "report.personal": "Include personal data in the header",
+  "report.name": "Name",
+  "report.birth_year": "Year of birth",
+  "report.sex": "Sex",
+  "report.height": "Height (cm)",
+  "report.weight": "Weight (kg)",
+  "report.privacy": "The PDF holds health data. It is saved where you choose and the app sends it nowhere; sharing it is your decision.",
+  "report.generate": "Create PDF",
+  "report.saved": "Saved as {name}, {pages} pages."
 }

@@ -83,6 +83,20 @@ Las consultas devuelven listas y diccionarios con texto, números y vacíos, lis
 ventana. Una pantalla solo puede pedir métricas de una lista fija, porque el nombre de la métrica
 termina dentro de la consulta.
 
+## Módulos del informe
+
+| Módulo | Responsabilidad |
+|---|---|
+| `queries.report` | Cifras que solo usa el informe: resumen, serie noche a noche, 10 noches destacadas y patrones por etiqueta |
+| `annotations.profile` | Datos personales para el encabezado, guardados solo en la base |
+| `reports.content` | Reunir todas las cifras como datos simples, para probarlas sin leer un PDF |
+| `reports.texts` y `locales/` | Textos del informe y formato de números y fechas, por idioma |
+| `reports.charts` | Los dos gráficos, dibujados como formas vectoriales |
+| `reports.pdf` | Armar las páginas A4 y guardar el PDF |
+
+El informe presenta datos y no interpreta: no trae diagnósticos ni recomendaciones. La primera
+página es siempre el resumen.
+
 ## Módulos de la interfaz
 
 | Módulo | Responsabilidad |

@@ -188,6 +188,23 @@ def test_from_an_empty_app_to_a_dashboard_in_two_languages(
     page.click("#f-nights button[data-v=weekend]")
     page.wait_for_function("document.querySelectorAll('#dt tbody tr').length < 5")
 
+    # The report is saved as a PDF, with personal data only when asked.
+    dialogs.save = tmp_path / "informe.pdf"
+    page.click("#btn-report")
+    page.wait_for_selector("#report-create")
+    assert not page.is_visible("#report-personal")
+    page.fill("#report-watch", "Galaxy Watch")
+    page.check("#report-include")
+    assert page.is_visible("#report-personal")
+    page.fill("#report-name", "Ana")
+    page.fill("#report-year", "1982")
+    page.click("#report-create")
+    page.wait_for_function("document.querySelector('#report-done').textContent.includes('2 p')")
+    assert dialogs.save.read_bytes().startswith(b"%PDF")
+    assert api.report_options()["profile"]["name"] == "Ana"
+    page.click("#dialog-close")
+    dialogs.save = tmp_path / "nights.csv"
+
     # The database panel lists the import.
     page.click("#btn-database")
     page.wait_for_selector("#overlay:not([hidden])")

@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Final, Protocol, cast
 
 import misalud
+from misalud.annotations import profile as profile_store
 from misalud.annotations import store as annotation_store
 from misalud.config import THRESHOLDS, Paths
 from misalud.derived.rebuild import ensure_derived
@@ -32,6 +33,8 @@ from misalud.queries.common import NightKind, NightScope, Period, Record
 from misalud.queries.coverage import short_window_notices
 from misalud.queries.day_detail import DAY_TRACKS, day_detail, hourly_profile
 from misalud.queries.night_detail import TRACKS, night_detail, night_differences
+from misalud.reports.content import PersonalData, ReportOptions, gather_report
+from misalud.reports.pdf import render_pdf
 from misalud.storage.backup import list_backups, restore_backup
 from misalud.storage.database import Connection, open_database
 
@@ -365,6 +368,62 @@ class Api:
             text = night_queries.nights_csv(connection, scope)
         target.write_text(text, encoding="utf-8-sig", newline="")
         return {"saved": True, "file_name": target.name}
+
+    @_safely
+    def report_options(self) -> Record:
+        """Return what the report form starts with: the saved profile and watch model."""
+        with self._open() as connection:
+            profile = profile_store.load_profile(connection)
+        return {"profile": profile, "watch_model": load_settings(self._paths.data_dir).watch_model}
+
+    @_safely
+    def create_report(self, period: str, options: dict[str, Any]) -> Record:
+        """Build the report for a period and save it as a PDF the user chooses.
+
+        Args:
+            period: Period choice of the filter bar.
+            options: ``watch_model`` (text) and ``include_personal`` (bool); with
+                personal data, also ``name``, ``birth_year``, ``sex``,
+                ``height_cm`` and ``weight_kg``, any of which may be missing.
+        """
+        target = self._dialogs.choose_save("misalud_informe.pdf")
+        if target is None:
+            return {"saved": False}
+        settings = load_settings(self._paths.data_dir)
+        watch = str(options.get("watch_model") or "").strip()
+        now = datetime.now()
+        with self._open() as connection:
+            personal = None
+            if options.get("include_personal"):
+                year = options.get("birth_year")
+                height = options.get("height_cm")
+                weight = options.get("weight_kg")
+                profile_store.save_profile(
+                    connection,
+                    name=options.get("name"),
+                    birth_year=int(year) if year else None,
+                    sex=options.get("sex"),
+                    height_cm=float(height) if height else None,
+                )
+                personal = PersonalData(
+                    name=str(options.get("name") or "").strip() or None,
+                    age=now.year - int(year) if year else None,
+                    sex=str(options.get("sex") or "").strip() or None,
+                    height_cm=float(height) if height else None,
+                    weight_kg=float(weight) if weight else None,
+                )
+            scope = self._scope(connection, period, "all")
+            report = ReportOptions(
+                period=Period(start=scope.start),
+                language=settings.language,
+                generated_at=now,
+                watch_model=watch or None,
+                personal=personal,
+            )
+            content = gather_report(connection, report)
+        pages = render_pdf(content, target)
+        save_settings(self._paths.data_dir, replace(settings, watch_model=watch))
+        return {"saved": True, "file_name": target.name, "pages": pages}
 
     @_safely
     def start_import(self) -> Record:

@@ -394,3 +394,41 @@ def test_one_day_comes_with_tracks_and_the_typical_day(
     assert len(everything["hourly"]["pulse"]) > 0
     assert everything["notices"] == []
     assert api.relate("all", "all", "day.hr_avg", "hours")["ok"]
+
+
+def test_the_report_is_saved_as_a_pdf_where_the_user_chooses(
+    api: Api, dialogs: FakeDialogs, tmp_path: Path
+) -> None:
+    do_import(api, dialogs, tmp_path, 6)
+    start = api.report_options()
+    assert (start["ok"], start["watch_model"], start["profile"]["name"]) == (True, "", None)
+    assert api.create_report("all", {}) == {"ok": True, "saved": False}
+
+    dialogs.save = tmp_path / "informe.pdf"
+    plain = api.create_report("all", {"watch_model": "  Galaxy Watch  "})
+    assert plain == {"ok": True, "saved": True, "file_name": "informe.pdf", "pages": 2}
+    assert dialogs.save.read_bytes().startswith(b"%PDF")
+    assert api.report_options()["watch_model"] == "Galaxy Watch"
+
+    personal = {
+        "include_personal": True,
+        "name": "Ana Pérez",
+        "birth_year": "1982",
+        "sex": "femenino",
+        "height_cm": "170",
+        "weight_kg": "64.5",
+    }
+    assert api.create_report("90", personal)["saved"] is True
+    assert api.report_options()["profile"] == {
+        "name": "Ana Pérez",
+        "birth_year": 1982,
+        "sex": "femenino",
+        "height_cm": 170.0,
+        "weight_kg": None,
+    }
+    assert api.create_report("all", {"include_personal": True})["saved"] is True
+    assert api.report_options()["profile"]["name"] is None
+    wrong = api.create_report("all", {"include_personal": True, "birth_year": "1492"})
+    assert wrong["error"] == "AnnotationError: birth year out of range: 1492"
+    api.set_language("en")
+    assert api.create_report("all", {})["saved"] is True

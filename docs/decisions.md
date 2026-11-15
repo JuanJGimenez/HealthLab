@@ -60,6 +60,10 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 52 | La pantalla de un día muestra siempre sus cinco pistas, sin elección | Son pocas y todas hacen falta para leer el día; la elección de pistas queda en la pantalla de la noche |
 | 53 | En el día típico, "fin de semana" es sábado y domingo; en las noches sigue siendo viernes y sábado | Un día se cuenta por el calendario; una noche, por el día en que empieza |
 | 54 | El contrato de pasos se corrigió: los pasos por intervalo salen de la tabla diaria, que trae todo el historial | El contrato todavía nombraba la tabla de 36 días; con eso la leyenda de ventana corta aparecía sin motivo |
+| 55 | La etapa 8 se divide en 8a (bloque base del informe) y 8b (bloques opcionales y detalle de noches) | Regla del plan; el bloque base ya sirve para llevar a una consulta |
+| 56 | El PDF se arma directamente en Python con la librería ReportLab, no imprimiendo una página de la ventana | La ventana no ofrece una forma confiable de guardar un PDF; así el informe es igual en cualquier computadora y cada cifra se prueba |
+| 57 | El modelo del reloj lo escribe el usuario; la altura y el peso se proponen desde la última medición de Samsung Health | La exportación no trae el nombre ni un perfil utilizable; el nombre, el año de nacimiento y el sexo quedan guardados solo en la base |
+| 58 | En el informe, las mitades se redondean hacia arriba | Es lo que se espera en papel: 57,5 se escribe 58 |
 
 ## Notas
 
@@ -74,5 +78,6 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisiones 41 a 44.** Tomadas en la etapa 5 y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 45 a 48.** Tomadas en la etapa 6a y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 49 a 51.** Tomadas en la etapa 6b y aprobadas por el usuario el 15 de noviembre de 2026.
-- **Decisiones 52 a 54.** Tomadas en la etapa 7; pendientes de la confirmación del usuario.
+- **Decisiones 52 a 54.** Tomadas en la etapa 7 y aprobadas por el usuario el 15 de noviembre de 2026.
+- **Decisiones 55 a 58.** Tomadas en la etapa 8a; pendientes de la confirmación del usuario.
 - **Esquema.** La etapa 4 agregó la tabla `exercise_custom_type` a la versión 1 del esquema, sin migración, porque todavía no existe ninguna base en uso. Desde la primera entrega que el usuario instale, todo cambio de esquema irá por migración.
