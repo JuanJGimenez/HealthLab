@@ -81,6 +81,7 @@ puntuales hechas a mano y no entran en esta tabla.
 | Columna | Tipo | Unidad | Origen | Estado |
 |---|---|---|---|---|
 | `samsung_id` | texto | | `datauuid` | Verificado |
+| `start_utc` | fecha y hora | UTC | `start_time` | Verificado |
 | `start_at`, `end_at` | fecha y hora | local | `start_time`, `end_time` | Verificado |
 | `spo2_avg`, `spo2_min`, `spo2_max` | número | % | `spo2`, `min`, `max` | Verificado |
 | `low_seconds` | número | segundos | `low_duration`: tiempo con SpO₂ bajo 90 % | Verificado |
@@ -92,11 +93,12 @@ Eso confirma el umbral de 90 %.
 ### spo2_interval
 
 Una fila por intervalo de 10 minutos dentro de una noche. Origen: archivo `binning` de `spo2_night`.
-Clave: `night_samsung_id` + `start_at`. Unos 37 intervalos por noche; historia completa desde marzo de 2025.
+Clave: `night_samsung_id` + `start_utc`. Unos 37 intervalos por noche; historia completa desde marzo de 2025.
 
 | Columna | Tipo | Unidad | Origen | Estado |
 |---|---|---|---|---|
 | `night_samsung_id` | texto | | `spo2_night.samsung_id` | Verificado |
+| `start_utc` | fecha y hora | UTC | `start_time` | Verificado |
 | `start_at`, `end_at` | fecha y hora | local | `start_time`, `end_time` | Verificado |
 | `spo2_avg`, `spo2_min`, `spo2_max` | número | % | `spo2`, `spo2_min`, `spo2_max` | Verificado |
 | `is_irregular` | sí o no | | `isIrregular`; ausente en algunos archivos | Supuesto |
@@ -112,8 +114,8 @@ Clave: `night_samsung_id` + `start_at`. Unos 37 intervalos por noche; historia c
 | `min_c`, `max_c` | número | °C | `min`, `max` | Verificado |
 | `lower_bound_c`, `upper_bound_c` | número | °C | `lower_bound`, `upper_bound`: rango habitual según Samsung | Supuesto |
 
-`skin_temperature_minute`: una fila por minuto. Origen: archivo `binning_data`. Clave: `night_samsung_id` + `start_at`.
-Columnas `mean_c`, `min_c`, `max_c`. Verificado.
+`skin_temperature_minute`: una fila por minuto. Origen: archivo `binning_data`. Clave: `night_samsung_id` + `start_utc`.
+Columnas `start_utc`, `start_at`, `mean_c`, `min_c`, `max_c`. Verificado.
 
 ### respiratory_rate y respiratory_rate_minute
 
@@ -121,32 +123,36 @@ Columnas `mean_c`, `min_c`, `max_c`. Verificado.
 
 | Columna | Tipo | Unidad | Origen | Estado |
 |---|---|---|---|---|
-| `rate_avg` | número | respiraciones por minuto | `average` | Verificado |
+| `rate_avg` | número | respiraciones por minuto | `average`; 0 significa sin medición y se guarda vacío | Verificado |
 | `lower_limit`, `upper_limit` | número | respiraciones por minuto | Mismo nombre | Verificado |
 | `is_outlier` | sí o no | | `is_outlier` | Supuesto |
 
-`respiratory_rate_minute`: una fila por minuto. Origen: archivo `binning_data`. Columna `rate`.
+`respiratory_rate_minute`: una fila por minuto. Origen: archivo `binning_data`. Clave: `night_samsung_id` + `start_utc`.
+Columnas `start_utc`, `start_at`, `rate`.
 El 1,8 % de los minutos trae 0, que significa sin medición y se guarda como vacío. Verificado.
 
 ### hrv_window
 
 Una fila por ventana de variabilidad cardíaca. Origen: archivo `binning_data` de `com.samsung.health.hrv`.
-Clave: `start_at`. El registro madre cubre una hora y cada ventana dura unos 5 minutos.
+Clave: `start_utc`. El registro madre cubre una hora y cada ventana dura unos 5 minutos.
 
 | Columna | Tipo | Unidad | Origen | Estado |
 |---|---|---|---|---|
+| `start_utc` | fecha y hora | UTC | `start_time` | Verificado |
 | `start_at`, `end_at` | fecha y hora | local | `start_time`, `end_time` | Verificado |
 | `rmssd_ms`, `sdnn_ms` | número | milisegundos | `rmssd`, `sdnn` | Verificado |
 
-Pendiente de la etapa 2: confirmar si las ventanas se superponen, porque un registro de una hora trae más de 12.
+Las ventanas se superponen: cada una dura unos 5 minutos y empieza 30 segundos después de la anterior
+(verificado en la etapa 2b). Sirven para promediar, no para sumar duraciones.
 
 ### heart_rate_minute
 
 Una fila por minuto con pulso. Origen: archivo `binning_data` de `com.samsung.shealth.tracker.heart_rate`.
-Clave: `start_at`. El registro madre cubre una hora.
+Clave: `start_utc`. El registro madre cubre una hora.
 
 | Columna | Tipo | Unidad | Origen | Estado |
 |---|---|---|---|---|
+| `start_utc` | fecha y hora | UTC | `start_time` | Verificado |
 | `start_at` | fecha y hora | local | `start_time` | Verificado |
 | `heart_rate`, `heart_rate_min`, `heart_rate_max` | número | latidos por minuto | Mismo nombre | Verificado |
 
@@ -170,10 +176,11 @@ No hay vínculo con la sesión de sueño: se une por ventana de tiempo.
 ### movement_minute
 
 Una fila por minuto con nivel de movimiento, de día y de noche. Origen: archivo `binning_data` de
-`com.samsung.health.movement`. Clave: `start_at`. Historia completa desde enero de 2025.
+`com.samsung.health.movement`. Clave: `start_utc`. Historia completa desde enero de 2025.
 
 | Columna | Tipo | Unidad | Origen | Estado |
 |---|---|---|---|---|
+| `start_utc` | fecha y hora | UTC | `start_time` | Verificado |
 | `start_at` | fecha y hora | local | `start_time` | Verificado |
 | `activity_level` | número | sin unidad conocida | `activity_level`; mediana 3, percentil 99 de 128 | Supuesto |
 
@@ -346,8 +353,19 @@ Samsung no incluye en la exportación el diccionario de sus códigos estándar.
 | `spo2_night`, `spo2_interval` | SpO₂ entre 60 y 100 | Registro rechazado |
 | `heart_rate_minute` | Pulso entre 30 y 220 | Registro rechazado |
 | `sleep_session` | Duración mayor a 0 y menor a 24 horas | Registro rechazado |
-| `sleep_stage`, `exercise` | Código fuera del diccionario | Se guarda el código y se informa |
-| `respiratory_rate_minute` | Valor 0 | Se guarda vacío |
+| `sleep_session` | Sin duración | Registro rechazado |
+| `skin_temperature`, `skin_temperature_minute` | Temperatura entre 25 y 42 °C | Registro rechazado |
+| `respiratory_rate`, `respiratory_rate_minute` | Entre 4 y 40 respiraciones por minuto | Registro rechazado |
+| `respiratory_rate`, `respiratory_rate_minute` | Valor 0 | Se guarda vacío; en el resumen de la noche se informa |
+| `sleep_stage` | Código fuera del diccionario | Se guarda el código y se informa |
+| Tablas diarias | Dos filas para el mismo día | Vale la última; la otra se informa |
+| Series de detalle | Archivo de detalle ausente, vacío o ilegible | El registro madre se guarda y se informa |
+
+Las series por minuto y por intervalo se identifican por `start_utc`, el momento en UTC. La hora local
+se repite cuando se viaja hacia el oeste: en la exportación de septiembre de 2026, 111 minutos de
+pulso comparten hora local con otro minuto distinto. `start_at` conserva la hora local para mostrar.
+
+Los códigos de ejercicio se guardan tal como vienen; sus nombres se resuelven al consultar.
 
 ## 6. Tablas de Samsung de ventana corta
 
@@ -363,6 +381,5 @@ Su primer día disponible avanza en cada exportación. Ninguna alimenta la versi
 ## 7. Pendientes de este diccionario
 
 - Confirmar el significado de `movement_awakening`, `activity_level`, `is_outlier` y de los códigos de electrocardiograma.
-- Confirmar si las ventanas de `hrv_window` se superponen.
 - Completar las columnas de la tabla `day`.
 - Conseguir los nombres oficiales de los códigos estándar de ejercicio.

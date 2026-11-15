@@ -21,3 +21,7 @@ class TableFormatError(ReadingError):
 
 class DetailFileError(ReadingError):
     """A detail file referenced from a table is missing or cannot be parsed."""
+
+
+class TableMissingError(ReadingError):
+    """The export does not contain a table that was asked for."""

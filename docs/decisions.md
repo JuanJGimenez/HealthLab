@@ -36,6 +36,9 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 28 | El proyecto requiere Python 3.12 o superior | Las herramientas de verificación de tipos actuales ya no admiten 3.11; la app empaquetada trae su propio Python |
 | 29 | La etapa 2 se divide en 2a, lectura, y 2b, transformación | Regla del plan: una etapa que se alarga se divide; la lectura se puede comprobar sola contra las exportaciones reales |
 | 30 | Las tablas se leen como texto; convertir a números y fechas es tarea de la transformación | La capa de lectura no conoce unidades ni significados, y así ningún valor se altera por una conversión automática |
+| 31 | Las series por minuto y por intervalo se identifican por el momento en UTC, y guardan además la hora local | La hora local se repite al viajar hacia el oeste; identificar por ella borraba 111 minutos de pulso reales |
+| 32 | Cada dominio se transforma por separado; si uno falla, los demás siguen | Aplica la decisión 10: un cambio de Samsung en una tabla no debe impedir importar el resto |
+| 33 | Un valor 0 de frecuencia respiratoria se guarda vacío y el registro se conserva | En esa tabla 0 significa sin medición; rechazar la noche entera perdía sus otros datos |
 
 ## Notas
 
@@ -43,4 +46,5 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisión 20.** La cantidad de pistas quedó reemplazada por la decisión 26.
 - **Decisión 22.** Tras la etapa 0, ninguna tabla de la primera versión es de ventana corta. El mecanismo queda disponible.
 - **Decisiones 27 y 28.** Tomadas en la etapa 1 y aprobadas por el usuario el 15 de noviembre de 2026.
-- **Decisiones 29 y 30.** Tomadas en la etapa 2a; pendientes de la confirmación del usuario.
+- **Decisiones 29 y 30.** Tomadas en la etapa 2a y aprobadas por el usuario el 15 de noviembre de 2026.
+- **Decisiones 31 a 33.** Tomadas en la etapa 2b; pendientes de la confirmación del usuario.
