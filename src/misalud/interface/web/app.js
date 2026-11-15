@@ -13,7 +13,7 @@ const $$ = (selector, root) => Array.from((root || document).querySelectorAll(se
 const call = (name, ...args) => window.pywebview.api[name](...args);
 
 const state = {period: 'all', nights: 'all', tab: 'oxygen', x: 'night_hr_avg', y: 'low_minutes',
-  sort: ['night_date', -1], texts: {}, language: 'es', theme: 'system', boot: null, data: null};
+  sort: ['night_date', -1], texts: {}, language: 'es', theme: 'system', boot: null, data: null, night: null};
 let T = null;                     // colour tokens read from the stylesheet
 const charts = {};
 
@@ -53,6 +53,7 @@ function applyTexts() {
   document.documentElement.lang = state.language;
   $$('[data-t]').forEach(node => { node.textContent = t(node.dataset.t); });
   $$('[data-label]').forEach(node => node.setAttribute('aria-label', t(node.dataset.label)));
+  $$('[data-placeholder]').forEach(node => node.setAttribute('placeholder', t(node.dataset.placeholder)));
 }
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 function readTokens() {
@@ -69,6 +70,12 @@ function chart(id) {
     if (window.ResizeObserver) new ResizeObserver(() => charts[id] && charts[id].resize()).observe(node);
   }
   return charts[id];
+}
+const isoDay = time => new Date(time).toISOString().slice(0, 10);
+function onNightClick(id, pick) {
+  const c = chart(id);
+  c.off('click');
+  c.on('click', params => { const day = pick(params); if (day) openNight(day); });
 }
 function emptyChart(id, count) {
   const c = chart(id);
@@ -163,6 +170,8 @@ function renderOxygen() {
         itemStyle: {color: T.c1, opacity: .8, borderColor: T.bg, borderWidth: 1}, emphasis: {scale: 1.6},
         markLine: markLine(state.boot.low_spo2_pct, state.boot.low_spo2_pct + ' %')}]
     }), true);
+    onNightClick('o1', params => isoDay(params.value[0]));
+    onNightClick('o2', params => isoDay(params.value[0]));
     chart('o1').group = chart('o2').group = 'oxygen';
     echarts.connect('oxygen');
   }
@@ -206,6 +215,7 @@ function renderOxygen() {
       series: [{type: 'heatmap', coordinateSystem: 'calendar', data: nights.map(night => [night.night_date, night.low_minutes]),
         itemStyle: {borderWidth: 2, borderColor: T.bg, borderRadius: 2}}]
     }, true);
+    onNightClick('o4', params => params.value[0]);
   }
   loadWorst();
 }
@@ -216,12 +226,12 @@ async function loadWorst() {
     [t('column.night'), night => fdate(night.night_date) + ' · ' + weekday(night.weekday), 'l'],
     [t('column.low_minutes'), night => fmt(night.low_minutes, 1)],
     [t('column.spo2_min'), night => fmt(night.spo2_min, 0)],
-    [t('column.below85'), night => fmt(night.intervals_below_85, 0)],
+    [t('column.below85'), night => fmt(night.below_85_minutes, 0)],
     [t('column.pulse'), night => fmt(night.night_hr_avg, 0)],
     [t('column.snoring'), night => fmt(night.snoring_min, 0)],
-    [t('column.bedtime'), night => hhmm(night.bedtime_hour)]], answer.nights);
+    [t('column.bedtime'), night => hhmm(night.bedtime_hour)]], answer.nights, null, night => openNight(night.night_date));
 }
-function buildTable(table, columns, rows, sorting) {
+function buildTable(table, columns, rows, sorting, onRow) {
   table.textContent = '';
   const head = table.createTHead().insertRow();
   columns.forEach(column => {
@@ -235,6 +245,7 @@ function buildTable(table, columns, rows, sorting) {
   const body = table.createTBody();
   rows.forEach(row => {
     const tr = body.insertRow();
+    if (onRow) { tr.className = 'clickable'; tr.addEventListener('click', () => onRow(row)); }
     columns.forEach(column => { const td = tr.insertCell(); if (column[2] === 'l') td.className = 'l'; td.textContent = column[1](row); });
   });
 }
@@ -284,6 +295,7 @@ function trendChart(id, key, trend, unit, label) {
       {type: 'line', name: t('heart.rolling'), data: trend.map(point => [utc(point.night_date), point.value]), showSymbol: false,
         lineStyle: {width: 2.5, color: T.c1}, itemStyle: {color: T.c1}, z: 3}]
   }), true);
+  onNightClick(id, params => (params.seriesIndex === 0 ? isoDay(params.value[0]) : null));
 }
 function weekdayChart(id, rows, key, unit, label) {
   const byDay = new Map(rows.map(row => [row.weekday, row]));
@@ -348,6 +360,7 @@ async function renderRelate() {
     series: [{type: 'scatter', data: answer.points.map(point => [point.x, point.y, point.night_date]), symbolSize: 7,
       itemStyle: {color: T.c1, opacity: .55, borderColor: T.bg, borderWidth: 1}}]
   }), true);
+  onNightClick('r1', params => params.data[2]);
   const stat = $('#rstat');
   stat.textContent = '';
   if (answer.spearman === null) stat.textContent = t('relate.none', {n: answer.nights});
@@ -383,7 +396,146 @@ function renderData() {
   $('#dstat').textContent = t('data.count', {n: rows.length});
   const title = column => (column === 'night_date' ? t('column.night') : column === 'weekday' ? t('column.weekday') : t('metric.' + column));
   buildTable($('#dt'), DATA_COLUMNS.map(column => [title(column[0]), column[1], column[2], column[0]]), rows,
-    {key, direction, sort: chosen => { state.sort = [chosen, state.sort[0] === chosen ? -state.sort[1] : -1]; renderData(); }});
+    {key, direction, sort: chosen => { state.sort = [chosen, state.sort[0] === chosen ? -state.sort[1] : -1]; renderData(); }},
+    night => openNight(night.night_date));
+}
+
+/* ---------- one night ---------- */
+const STAGE_LEVELS = {40003: 0, 40002: 1, 40004: 2, 40001: 3};       // deep, light, REM, awake
+const STAGE_TEXT = ['stage.deep', 'stage.light', 'stage.rem', 'stage.awake'];
+const clock = time => { const d = new Date(time); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const tagName = tag => (tag.builtin_key && tag.name === tag.builtin_key ? t('tag.' + tag.builtin_key) : tag.name);
+const steps = (spans, value) => { const data = []; spans.forEach(span => { data.push([span.from, value(span)]); data.push([span.to, value(span)]); }); return data; };
+
+/* Each track is one entry: how to turn its data into a series and how to label its axis. */
+const TRACK_VIEWS = {
+  stages: {
+    series: spans => ({type: 'line', data: steps(spans, span => STAGE_LEVELS[span.code]), showSymbol: false, lineStyle: {width: 2, color: T.c1}, itemStyle: {color: T.c1}}),
+    axis: () => ({min: 0, max: 3, interval: 1, axisLabel: {color: T.ts, fontSize: 10, formatter: value => t(STAGE_TEXT[value] || '')}}),
+    text: value => t(STAGE_TEXT[value] || '')},
+  oxygen: {
+    series: spans => ({type: 'line', data: steps(spans, span => span.lowest), showSymbol: false, lineStyle: {width: 2, color: T.c1}, itemStyle: {color: T.c1},
+      markLine: markLine(state.boot.low_spo2_pct, state.boot.low_spo2_pct + ' %')}),
+    axis: spans => ({min: Math.min(80, ...spans.map(span => Math.floor(span.lowest / 5) * 5)), max: 100}),
+    text: value => fmt(value, 0) + ' %'},
+  pulse: {
+    series: points => ({type: 'line', data: points.map(point => [point.at, point.value]), showSymbol: false, lineStyle: {width: 1.5, color: T.c2}, itemStyle: {color: T.c2}}),
+    axis: () => ({scale: true}), text: value => fmt(value, 0) + ' ' + t('unit.bpm')},
+  variability: {
+    series: points => ({type: 'scatter', data: points.map(point => [point.at, point.value]), symbolSize: 3, itemStyle: {color: T.c3, opacity: .6}}),
+    axis: () => ({scale: true}), text: value => fmt(value, 0) + ' ms'},
+  snoring: {
+    series: spans => ({type: 'custom', data: spans.map(span => [span.from, span.to, span.seconds]), encode: {x: [0, 1]},
+      renderItem: (params, api) => {
+        const from = api.coord([api.value(0), 0]), to = api.coord([api.value(1), 1]);
+        return {type: 'rect', shape: {x: from[0], y: to[1], width: Math.max(to[0] - from[0], 2), height: from[1] - to[1]}, style: {fill: T.c3}};
+      }}),
+    axis: () => ({min: 0, max: 1, axisLabel: {show: false}, splitLine: {show: false}}), text: value => fmt(value, 0) + ' s'},
+  breathing: {
+    series: points => ({type: 'line', data: points.map(point => [point.at, point.value]), showSymbol: false, lineStyle: {width: 1.5, color: T.c3}, itemStyle: {color: T.c3}}),
+    axis: () => ({scale: true}), text: value => fmt(value, 1)},
+  skin_temperature: {
+    series: (points, night) => ({type: 'line', data: points.map(point => [point.at, point.value]), showSymbol: false, lineStyle: {width: 1.5, color: T.c2}, itemStyle: {color: T.c2},
+      markLine: night.skin_baseline_c === null ? undefined : markLine(night.skin_baseline_c, t('chart.usual'))}),
+    axis: () => ({scale: true}), text: value => fmt(value, 1) + ' °C'},
+  movement: {
+    series: points => ({type: 'bar', data: points.map(point => [point.at, point.value]), barWidth: 1, itemStyle: {color: T.tm}}),
+    axis: () => ({min: 0}), text: value => fmt(value, 0)}
+};
+
+async function openNight(day) {
+  const answer = await call('night', day);
+  if (!answer.ok) return showError(answer.error);
+  if (!answer.found) return;
+  state.night = answer;
+  $('#content').hidden = true;
+  $('#night').hidden = false;
+  renderNight();
+  window.scrollTo(0, 0);
+}
+function closeNight() {
+  state.night = null;
+  $('#night').hidden = true;
+  $('#content').hidden = false;
+  renderKpis();
+  renderTab();
+}
+function renderNight() {
+  const {night, tags, annotations} = state.night;
+  $('#night-title').textContent = t('night.title', {date: fdate(night.night_date), day: weekday(night.weekday)}) + ' · ' +
+    t('night.time', {from: clock(night.start_at), to: clock(night.end_at)});
+  $('#night-prev').disabled = !state.night.previous;
+  $('#night-next').disabled = !state.night.next;
+  const oxygen = (value, digits, unit) => (night.has_valid_oxygen ? fmt(value, digits) + unit : t('night.no_oxygen'));
+  const facts = [
+    ['metric.asleep_hours', fmt(night.asleep_hours, 1) + ' h'], ['metric.score', fmt(night.score, 0)],
+    ['metric.low_minutes', oxygen(night.low_minutes, 1, ' min')], ['metric.spo2_min', oxygen(night.spo2_min, 0, ' %')],
+    ['metric.night_hr_avg', fmt(night.night_hr_avg, 0) + ' ' + t('unit.bpm')], ['metric.hrv_rmssd_ms', fmt(night.hrv_rmssd_ms, 0)],
+    ['metric.snoring_min', night.snoring_min === null ? t('tip.not_recorded') : fmt(night.snoring_min, 0) + ' min'],
+    ['metric.skin_temp_vs_baseline_c', fmt(night.skin_temp_vs_baseline_c, 1)], ['metric.respiratory_rate_avg', fmt(night.respiratory_rate_avg, 1)]];
+  const box = $('#night-facts');
+  box.textContent = '';
+  facts.forEach(([key, value]) => box.appendChild(fact(t(key), value)));
+
+  const chips = $('#night-tags');
+  chips.textContent = '';
+  tags.forEach(tag => {
+    const set = annotations.tags.includes(tag.tag_id);
+    chips.appendChild(el('button', {class: 'chip', type: 'button', 'aria-pressed': String(set), text: tagName(tag), onclick: async () => {
+      const saved = await call('set_tag', night.night_date, tag.tag_id, !set);
+      if (!saved.ok) return showError(saved.error);
+      state.night.annotations = saved.annotations;
+      renderNight();
+    }}));
+  });
+  $('#night-note').value = annotations.note || '';
+  $('#night-note-done').textContent = '';
+
+  const toggles = $('#night-toggles');
+  toggles.textContent = '';
+  state.boot.tracks.forEach(name => {
+    const shown = state.boot.shown_tracks.includes(name);
+    toggles.appendChild(el('button', {class: 'chip', type: 'button', 'aria-pressed': String(shown), 'data-track': name, text: t('track.' + name), onclick: async () => {
+      const wanted = shown ? state.boot.shown_tracks.filter(other => other !== name) : state.boot.shown_tracks.concat(name);
+      const saved = await call('set_tracks', wanted);
+      if (!saved.ok) return showError(saved.error);
+      state.boot.shown_tracks = saved.shown_tracks;
+      renderNight();
+    }}));
+  });
+  drawTracks();
+}
+function drawTracks() {
+  const {night, tracks} = state.night;
+  const names = state.boot.shown_tracks;
+  const node = $('#night-chart');
+  const HEIGHT = 96, GAP = 44, TOP = 30;
+  node.style.height = (TOP + names.length * (HEIGHT + GAP) + 30) + 'px';
+  const c = chart('night-chart');
+  c.resize();
+  c.clear();
+  if (!names.length) return;
+  const low = state.night.low_spans.map(span => [{xAxis: span.from}, {xAxis: span.to}]);
+  const option = {animation: false, textStyle: {fontFamily: 'inherit'}, grid: [], xAxis: [], yAxis: [], series: [], title: [],
+    axisPointer: {link: [{xAxisIndex: 'all'}], lineStyle: {color: T.tm, width: 1}},
+    tooltip: {trigger: 'axis', confine: true, backgroundColor: T.bg, borderColor: T.line, borderWidth: 1, padding: [8, 10], textStyle: {color: T.tp, fontSize: 12},
+      extraCssText: 'box-shadow:0 4px 16px rgba(0,0,0,.18);border-radius:8px;',
+      formatter: points => tip(clock(points[0].axisValue), points.map(point => ({c: point.color,
+        v: TRACK_VIEWS[names[point.seriesIndex]].text(point.value[names[point.seriesIndex] === 'snoring' ? 2 : 1]), l: point.seriesName})))},
+    dataZoom: [{type: 'inside', xAxisIndex: names.map((_, index) => index), filterMode: 'none'}]};
+  names.forEach((name, index) => {
+    const data = tracks[name], view = TRACK_VIEWS[name], top = TOP + index * (HEIGHT + GAP);
+    option.title.push({text: t('track.' + name) + (data.length ? '' : ' · ' + t('night.no_data')), left: 4, top: top - 24,
+      textStyle: {color: data.length ? T.ts : T.tm, fontSize: 12, fontWeight: 600}});
+    option.grid.push({left: 64, right: 16, top, height: HEIGHT});
+    option.xAxis.push(Object.assign(axisBase(), {type: 'time', gridIndex: index, min: night.start_at, max: night.end_at, splitLine: {show: false},
+      axisLabel: {color: T.ts, fontSize: 11, show: index === names.length - 1, formatter: value => clock(value)}}));
+    option.yAxis.push(Object.assign(axisBase(), {type: 'value', gridIndex: index, splitNumber: 3}, view.axis(data)));
+    const series = Object.assign(view.series(data, night), {name: t('track.' + name), xAxisIndex: index, yAxisIndex: index});
+    series.markArea = {silent: true, itemStyle: {color: T.c2, opacity: .13}, data: low};
+    option.series.push(series);
+  });
+  c.setOption(option, true);
 }
 
 /* ---------- dialogs ---------- */
@@ -529,10 +681,13 @@ async function start() {
   fillMetricSelects();
   const hasData = boot.available.nights > 0;
   $('#welcome').hidden = hasData;
-  $('#content').hidden = !hasData;
+  $('#content').hidden = !hasData || Boolean(state.night);
+  $('#night').hidden = !state.night;
+  if (state.night) renderNight();
   $('#meta').textContent = hasData ? t('meta.range', {a: fdate(boot.available.first_night), b: fdate(boot.available.last_night), n: boot.available.nights}) : '';
   $('#foot').textContent = t('foot', {version: boot.version});
   if (hasData) await reload();
+  if (state.night) $('#content').hidden = true;
 }
 function wire() {
   [['#f-period', 'period'], ['#f-nights', 'nights']].forEach(([selector, key]) => {
@@ -562,7 +717,17 @@ function wire() {
     state.theme = dark ? 'light' : 'dark';
     await call('set_theme', state.theme);
     applyTheme();
-    if (state.data) { renderKpis(); renderTab(); }
+    if (state.night) renderNight();
+    else if (state.data) { renderKpis(); renderTab(); }
+  });
+  $('#night-back').addEventListener('click', closeNight);
+  $('#night-prev').addEventListener('click', () => state.night.previous && openNight(state.night.previous));
+  $('#night-next').addEventListener('click', () => state.night.next && openNight(state.night.next));
+  $('#night-note-save').addEventListener('click', async () => {
+    const saved = await call('set_note', state.night.night.night_date, $('#night-note').value);
+    if (!saved.ok) return showError(saved.error);
+    state.night.annotations = saved.annotations;
+    $('#night-note-done').textContent = t('night.saved');
   });
 }
 function begin() { wire(); start(); }

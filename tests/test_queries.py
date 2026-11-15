@@ -101,8 +101,8 @@ def test_the_worst_nights_are_those_with_time_under_90(db: Connection) -> None:
     ]
     by_reading = worst_oxygen_nights(db, order_by="spo2_min", limit=1)
     assert [night["spo2_min"] for night in by_reading] == [84]
-    by_intervals = worst_oxygen_nights(db, order_by="intervals_below_85")
-    assert [night["intervals_below_85"] for night in by_intervals] == [1, 0]
+    by_time = worst_oxygen_nights(db, order_by="below_85_minutes")
+    assert [night["below_85_minutes"] for night in by_time] == [10, 0]
     assert worst_oxygen_nights(db, limit=0) == []
     assert worst_oxygen_nights(db, MIDDLE) == []
     with pytest.raises(UnknownMetricError):

@@ -14,6 +14,7 @@ from typing import Any, Final
 
 from misalud.config import THRESHOLDS
 from misalud.queries.common import Record, records
+from misalud.queries.nights import VALID_OXYGEN
 from misalud.storage.database import Connection
 
 DEFAULT_TRACKS: Final = ("stages", "oxygen", "pulse", "snoring")
@@ -80,11 +81,14 @@ def _stages(connection: Connection, night: _Night) -> list[Record]:
 
 
 def _oxygen(connection: Connection, night: _Night) -> list[Record]:
-    """Oxygen of each 10-minute interval, flagged when its lowest reading is under 90 %."""
+    """Oxygen of each interval, flagged when its lowest reading is under 90 %.
+
+    Intervals last one minute on some nights and ten on others.
+    """
     return records(
         connection,
         f"""SELECT {_local("start_utc")} AS "from",
-            {_local("start_utc")} + INTERVAL 10 MINUTE AS "to",
+            {_local("start_utc")} + (end_at - start_at) + INTERVAL 1 SECOND AS "to",
             spo2_avg AS average, spo2_min AS lowest, spo2_min < ? AS is_low
         FROM spo2_interval WHERE night_samsung_id = ? ORDER BY start_utc""",
         [night.offset_min, night.offset_min, THRESHOLDS.low_spo2_threshold_pct, night.spo2_id],
@@ -117,6 +121,26 @@ TRACKS: Final = MappingProxyType(
 """The eight tracks, by name, in display order."""
 
 
+def low_spans(intervals: list[Record]) -> list[Record]:
+    """Join consecutive low-oxygen intervals into stretches.
+
+    Args:
+        intervals: Output of the oxygen track, in time order.
+
+    Returns:
+        One record per stretch with ``from`` and ``to``.
+    """
+    spans: list[Record] = []
+    for interval in intervals:
+        if not interval["is_low"]:
+            continue
+        if spans and interval["from"] <= spans[-1]["to"]:
+            spans[-1]["to"] = max(spans[-1]["to"], interval["to"])
+        else:
+            spans.append({"from": interval["from"], "to": interval["to"]})
+    return spans
+
+
 def night_detail(connection: Connection, night_date: date) -> dict[str, Any] | None:
     """Return one night with its tracks and its neighbours.
 
@@ -125,12 +149,19 @@ def night_detail(connection: Connection, night_date: date) -> dict[str, Any] | N
         night_date: The date the night belongs to.
 
     Returns:
-        ``night``: the row of ``night``. ``tracks``: the data of every track, by
-        name; a track without data is an empty list. ``previous`` and ``next``:
+        ``night``: the row of ``night`` plus ``has_valid_oxygen``. ``tracks``:
+        the data of every track, by name; a track without data is an empty
+        list. ``low_spans``: stretches
+        with oxygen under 90 %, to shade across every track. ``previous`` and ``next``:
         dates of the neighbouring nights, or ``None`` at either end. The whole
         result is ``None`` when there is no night on that date.
     """
-    found = records(connection, "SELECT * FROM night WHERE night_date = ?", [night_date])
+    found = records(
+        connection,
+        f"""SELECT *, coalesce({VALID_OXYGEN}, FALSE) AS has_valid_oxygen
+        FROM night WHERE night_date = ?""",
+        [night_date],
+    )
     if not found:
         return None
     night = _Night(found[0])
@@ -140,8 +171,10 @@ def night_detail(connection: Connection, night_date: date) -> dict[str, Any] | N
             (SELECT min(night_date) FROM night WHERE night_date > ?) AS next""",
         [night_date, night_date],
     )[0]
+    tracks = {name: track(connection, night) for name, track in TRACKS.items()}
     return {
         "night": found[0],
-        "tracks": {name: track(connection, night) for name, track in TRACKS.items()},
+        "tracks": tracks,
+        "low_spans": low_spans(tracks["oxygen"]),
         **neighbours,
     }

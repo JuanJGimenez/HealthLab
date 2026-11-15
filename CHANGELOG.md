@@ -3,6 +3,31 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [0.7.0] - 2026-11-15
+
+Etapa 6a del plan: detalle de una noche y carga de etiquetas.
+
+### Agregado
+
+- Pantalla de una noche: encabezado con sus cifras, ocho pistas sobre el mismo eje de tiempo
+  (etapas, oxígeno, pulso, variabilidad, ronquido, respiración, temperatura de piel y movimiento),
+  cursor que cruza todas, zoom, franjas en los tramos con oxígeno bajo 90 % y flechas a la noche
+  anterior y siguiente. Se abre con un clic en una noche desde gráficos y tablas.
+- Elección de pistas: por defecto etapas, oxígeno, pulso y ronquido; la app recuerda la elección.
+- `annotations`: ocho etiquetas iniciales de sí o no y una nota libre por fecha, editables desde
+  la pantalla de una noche.
+- Primera migración de esquema (versión 2): agrega las etiquetas iniciales.
+
+### Corregido
+
+- El detalle de oxígeno no viene siempre cada 10 minutos: 394 noches lo traen cada minuto. La
+  métrica "intervalos bajo 85 %" mezclaba ambas cosas; ahora es "minutos bajo 85 %".
+
+### Pendiente (etapa 6b)
+
+- Comparar dos noches, filtro por etiqueta en todas las vistas, comparación con y sin etiqueta,
+  color por etiqueta en Relacionar, carga desde el calendario y administración de etiquetas.
+
 ## [0.6.0] - 2026-11-15
 
 Etapa 5 del plan: ventana y dashboard. La app ya se puede abrir: muestra las seis vistas

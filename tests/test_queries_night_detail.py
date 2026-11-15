@@ -8,7 +8,7 @@ from datetime import date
 import pytest
 
 from misalud.derived.rebuild import rebuild_derived
-from misalud.queries.night_detail import DEFAULT_TRACKS, TRACKS, night_detail
+from misalud.queries.night_detail import DEFAULT_TRACKS, TRACKS, low_spans, night_detail
 from misalud.storage.database import Connection
 from tests.support.sample_db import at, build_sample, insert
 
@@ -57,11 +57,13 @@ def test_a_night_comes_with_its_figures_and_neighbours(db: Connection) -> None:
     assert detail is not None
     assert detail["night"]["session_id"] == "A"
     assert detail["night"]["utc_offset_min"] == -180
+    assert detail["night"]["has_valid_oxygen"] is True
     assert (detail["night"]["spo2_id"], detail["night"]["skin_baseline_c"]) == ("oxA", 34.0)
     assert (detail["previous"], detail["next"]) == (None, "2026-01-06")
     middle = night_detail(db, date(2026, 1, 6))
     assert middle is not None
     assert (middle["previous"], middle["next"]) == ("2026-01-05", "2026-01-09")
+    assert middle["night"]["has_valid_oxygen"] is False
     assert night_detail(db, date(2026, 1, 7)) is None
 
 
@@ -116,3 +118,20 @@ def test_a_night_in_another_time_zone_uses_its_own_clock(db: Connection) -> None
     assert detail is not None
     assert detail["tracks"]["pulse"] == [{"at": "2026-01-09T22:00:00", "value": 55}]
     assert detail["tracks"]["oxygen"][0]["lowest"] == 93
+
+
+def test_consecutive_low_intervals_are_joined_into_stretches(db: Connection) -> None:
+    detail = night_detail(db, date(2026, 1, 5))
+    assert detail is not None
+    assert detail["low_spans"] == [{"from": "2026-01-06T00:10:00", "to": "2026-01-06T00:40:00"}]
+    intervals = [
+        {"from": "01:00", "to": "01:01", "is_low": True},
+        {"from": "01:01", "to": "01:02", "is_low": True},
+        {"from": "01:02", "to": "01:03", "is_low": False},
+        {"from": "01:03", "to": "01:04", "is_low": True},
+    ]
+    assert low_spans(intervals) == [
+        {"from": "01:00", "to": "01:02"},
+        {"from": "01:03", "to": "01:04"},
+    ]
+    assert low_spans([]) == []

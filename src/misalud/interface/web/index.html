@@ -68,13 +68,14 @@
             <select id="worst-by">
               <option value="low_minutes" data-t="metric.low_minutes"></option>
               <option value="spo2_min" data-t="metric.spo2_min"></option>
-              <option value="intervals_below_85" data-t="metric.intervals_below_85"></option>
+              <option value="below_85_minutes" data-t="metric.below_85_minutes"></option>
             </select></div>
           <div class="tscroll short"><table id="worst"></table></div>
         </div>
         <div class="card full"><h2 data-t="oxygen.calendar.title"></h2><p class="cap" data-t="oxygen.calendar.caption"></p><div class="scroll-x"><div class="chart cal" id="o4"></div></div></div>
       </div>
       <p class="note" data-t="oxygen.note"></p>
+      <p class="note" data-t="night.open_hint"></p>
     </section>
 
     <section id="p-sleep" role="tabpanel" hidden>
@@ -126,6 +127,32 @@
       </div>
     </section>
   </div>
+
+  <section id="night" hidden>
+    <div class="night-nav">
+      <button class="btn" id="night-back" type="button" data-t="night.back"></button>
+      <button class="btn" id="night-prev" type="button" data-t="night.previous"></button>
+      <h2 id="night-title"></h2>
+      <button class="btn" id="night-next" type="button" data-t="night.next"></button>
+    </div>
+    <div class="facts" id="night-facts"></div>
+    <div class="card night-card">
+      <h2 data-t="night.tags"></h2>
+      <p class="cap" data-t="night.tags.caption"></p>
+      <div class="chips" id="night-tags"></div>
+      <div class="row">
+        <input type="text" id="night-note" data-placeholder="night.note.placeholder" maxlength="300">
+        <button class="btn" id="night-note-save" type="button" data-t="night.save"></button>
+        <span class="stat" id="night-note-done" aria-live="polite"></span>
+      </div>
+    </div>
+    <div class="card night-card">
+      <h2 data-t="night.tracks"></h2>
+      <p class="cap" data-t="night.tracks.caption"></p>
+      <div class="chips" id="night-toggles"></div>
+      <div id="night-chart"></div>
+    </div>
+  </section>
 
   <footer id="foot"></footer>
 </div>

@@ -104,3 +104,14 @@ footer{margin-top:22px;font-size:12px;color:var(--text-muted)}
 @media (prefers-reduced-motion: reduce){.progress span{animation:none;width:100%;opacity:.5}}
 .path{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--text-secondary);word-break:break-all}
 @media (max-width:560px){.chart{height:240px}.kpi .v{font-size:22px}}
+.night-nav{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
+.night-nav h2{font-size:17px;margin:0 6px}
+.night-card{margin-top:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.chip{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--text-secondary);background:var(--surface-1)}
+.chip:hover{background:var(--hover)}
+.chip[aria-pressed="true"]{background:var(--s1);border-color:var(--s1);color:var(--on-primary);font-weight:600}
+input[type=text]{font:inherit;font-size:12.5px;color:var(--text-primary);background:var(--surface-1);border:1px solid var(--line);border-radius:8px;padding:6px 10px;flex:1 1 280px;min-width:0}
+input[type=text]:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+tr.clickable{cursor:pointer}
+#night-chart{width:100%;height:600px}

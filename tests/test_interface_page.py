@@ -94,7 +94,33 @@ def test_from_an_empty_app_to_a_dashboard_in_two_languages(
     page.wait_for_function("document.querySelector('#csv-done').textContent !== ''")
     assert (tmp_path / "nights.csv").read_text(encoding="utf-8-sig").count("\n") == 6
 
+    # A click on a night opens its detail, with tracks, tags and a note.
+    page.click("#tabs button[data-tab=oxygen]")
+    page.click("#worst tbody tr:first-child")
+    page.wait_for_selector("#night:not([hidden])")
+    assert not page.is_visible("#content")
+    assert "Noche del" in page.inner_text("#night-title")
+    assert page.locator("#night-facts .fact").count() == 9
+    assert page.locator("#night-tags .chip").count() == 8
+    assert page.locator("#night-toggles .chip[aria-pressed=true]").count() == 4
+    page.click("#night-tags .chip:first-child")
+    page.wait_for_selector("#night-tags .chip:first-child[aria-pressed=true]")
+    page.fill("#night-note", "prueba")
+    page.click("#night-note-save")
+    page.wait_for_function("document.querySelector('#night-note-done').textContent === 'Guardado'")
+    noted_day = api.dashboard("all", "all")["nights"][2]["night_date"]
+    assert api.night(noted_day)["annotations"] == {"tags": [1], "note": "prueba"}
+    page.click("#night-toggles [data-track=movement]")
+    page.wait_for_selector("#night-toggles [data-track=movement][aria-pressed=true]")
+    assert api.bootstrap()["shown_tracks"][-1] == "movement"
+    title = page.inner_text("#night-title")
+    page.click("#night-next")
+    page.wait_for_function(f"document.querySelector('#night-title').textContent !== {title!r}")
+    page.click("#night-back")
+    assert page.is_visible("#content")
+
     # The filters ask Python again.
+    page.click("#tabs button[data-tab=data]")
     page.click("#f-nights button[data-v=weekend]")
     page.wait_for_function("document.querySelectorAll('#dt tbody tr').length < 5")
 

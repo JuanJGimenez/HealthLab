@@ -42,8 +42,7 @@ NIGHT_METRICS: Final = (
     "spo2_avg",
     "spo2_min",
     "low_minutes",
-    "intervals_below_90",
-    "intervals_below_85",
+    "below_85_minutes",
     "hrv_rmssd_ms",
     "hrv_sdnn_ms",
     "night_hr_avg",
@@ -59,9 +58,7 @@ NIGHT_METRICS: Final = (
 )
 """Numeric columns of ``night`` a screen may chart, average or relate."""
 
-OXYGEN_METRICS: Final = frozenset(
-    {"spo2_avg", "spo2_min", "low_minutes", "intervals_below_90", "intervals_below_85"}
-)
+OXYGEN_METRICS: Final = frozenset({"spo2_avg", "spo2_min", "low_minutes", "below_85_minutes"})
 """Metrics that only count on nights with enough oxygen recording."""
 
 MIN_NIGHTS_TO_CORRELATE: Final = 3
@@ -122,7 +119,7 @@ WORST_ORDERS: Final = MappingProxyType(
     {
         "low_minutes": "low_minutes DESC, spo2_min, night_date",
         "spo2_min": "spo2_min, low_minutes DESC, night_date",
-        "intervals_below_85": "intervals_below_85 DESC, low_minutes DESC, night_date",
+        "below_85_minutes": "below_85_minutes DESC, low_minutes DESC, night_date",
     }
 )
 """Ways to rank the hardest nights, by the metric that comes first."""
@@ -143,7 +140,7 @@ def worst_oxygen_nights(
         period: Dates to include.
         limit: Largest number of nights to return.
         order_by: ``low_minutes`` (most minutes under 90 %), ``spo2_min``
-            (lowest reading) or ``intervals_below_85`` (most intervals under 85 %).
+            (lowest reading) or ``below_85_minutes`` (most time under 85 %).
 
     Raises:
         UnknownMetricError: If ``order_by`` is not one of the three.

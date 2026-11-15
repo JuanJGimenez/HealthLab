@@ -111,6 +111,8 @@ def build_sample() -> Connection:
             "spo2_interval",
             night_samsung_id=night,
             start_utc=at("2026-01-06 03:00") + timedelta(minutes=10 * index),
+            start_at=at("2026-01-06 00:00") + timedelta(minutes=10 * index),
+            end_at=at("2026-01-06 00:09") + timedelta(minutes=10 * index, seconds=59),
             spo2_min=lowest,
         )
 

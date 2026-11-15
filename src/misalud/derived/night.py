@@ -83,8 +83,8 @@ oxygen AS {
 },
 oxygen_interval AS (
     SELECT night_samsung_id AS spo2_id,
-        count(*) FILTER (spo2_min < $low) AS intervals_below_90,
-        count(*) FILTER (spo2_min < $very_low) AS intervals_below_85
+        sum(epoch(end_at - start_at) + 1) FILTER (spo2_min < $very_low) / 60 AS below_85_minutes,
+        round(median(epoch(end_at - start_at) + 1) / 60) AS spo2_interval_min
     FROM spo2_interval
     GROUP BY night_samsung_id
 ),
@@ -154,9 +154,8 @@ SELECT
     oxygen.spo2_min,
     oxygen.low_minutes,
     CASE WHEN oxygen.spo2_id IS NOT NULL
-        THEN coalesce(oxygen_interval.intervals_below_90, 0) END AS intervals_below_90,
-    CASE WHEN oxygen.spo2_id IS NOT NULL
-        THEN coalesce(oxygen_interval.intervals_below_85, 0) END AS intervals_below_85,
+        THEN coalesce(oxygen_interval.below_85_minutes, 0) END AS below_85_minutes,
+    oxygen_interval.spo2_interval_min,
     oxygen.spo2_recorded_hours,
     variability.hrv_rmssd_ms,
     variability.hrv_sdnn_ms,
@@ -192,7 +191,13 @@ ORDER BY night_date
 """
 
 VERY_LOW_SPO2_PCT: Final = 85
-"""Second oxygen level counted per night, below the main threshold of 90."""
+"""Second oxygen level measured per night, below the main threshold of 90.
+
+The watch reports oxygen every minute on some nights and every 10 minutes on
+others, so the time under this level is added up from the length of each
+interval whose lowest reading fell below it. With 10-minute intervals the
+figure is an upper bound: the reading may have been low for part of the interval.
+"""
 
 
 def rebuild_night(connection: Connection) -> int:
@@ -211,7 +216,6 @@ def rebuild_night(connection: Connection) -> int:
         NIGHT_SQL,
         {
             "padding": THRESHOLDS.signal_join_padding_min,
-            "low": THRESHOLDS.low_spo2_threshold_pct,
             "very_low": VERY_LOW_SPO2_PCT,
         },
     )

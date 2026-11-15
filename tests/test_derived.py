@@ -63,11 +63,11 @@ def test_a_night_that_starts_after_midnight_has_a_bedtime_above_24(db: Connectio
 def test_oxygen_comes_from_the_longest_record_inside_the_window(db: Connection) -> None:
     a = night(db, "2026-01-05")
     assert (a["spo2_avg"], a["spo2_min"], a["low_minutes"]) == (94, 84, 10)
-    assert (a["intervals_below_90"], a["intervals_below_85"]) == (3, 1)
+    assert (a["below_85_minutes"], a["spo2_interval_min"]) == (10, 10)
     assert a["spo2_recorded_hours"] == 6.67
     b = night(db, "2026-01-06")
     assert (b["spo2_min"], b["spo2_recorded_hours"]) == (91, 2.0)
-    assert (b["intervals_below_90"], b["intervals_below_85"]) == (0, 0)
+    assert (b["below_85_minutes"], b["spo2_interval_min"]) == (0, None)
 
 
 def test_the_other_signals_are_attached_by_time(db: Connection) -> None:
@@ -80,14 +80,14 @@ def test_the_other_signals_are_attached_by_time(db: Connection) -> None:
     b = night(db, "2026-01-06")
     for column in ("skin_temp_c", "respiratory_rate_avg", "snoring_min", "snoring_events"):
         assert b[column] is None, column
-    assert (b["hrv_rmssd_ms"], b["night_hr_avg"], b["intervals_below_90"]) == (None, None, 0)
+    assert (b["hrv_rmssd_ms"], b["night_hr_avg"], b["below_85_minutes"]) == (None, None, 0)
 
 
 def test_a_night_in_another_time_zone_is_matched_in_utc(db: Connection) -> None:
     c = night(db, "2026-01-09")
     # 01:30 UTC is 21:30 local, half an hour before sleep: it must not count.
     assert (c["night_hr_avg"], c["night_hr_min"]) == (55, 55)
-    assert (c["spo2_min"], c["spo2_recorded_hours"], c["intervals_below_90"]) == (93, 6.92, 0)
+    assert (c["spo2_min"], c["spo2_recorded_hours"], c["below_85_minutes"]) == (93, 6.92, 0)
 
 
 def test_a_night_carries_the_context_of_its_day(db: Connection) -> None:

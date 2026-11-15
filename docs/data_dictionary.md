@@ -92,8 +92,11 @@ Eso confirma el umbral de 90 %.
 
 ### spo2_interval
 
-Una fila por intervalo de 10 minutos dentro de una noche. Origen: archivo `binning` de `spo2_night`.
-Clave: `night_samsung_id` + `start_utc`. Unos 37 intervalos por noche; historia completa desde marzo de 2025.
+Una fila por intervalo dentro de una noche. Origen: archivo `binning` de `spo2_night`.
+Clave: `night_samsung_id` + `start_utc`. Historia completa desde marzo de 2025.
+
+Los intervalos no duran siempre lo mismo: en la exportación de noviembre de 2026, 394 noches traen un
+valor por minuto y 304 noches uno cada 10 minutos. La etapa 0 había anotado solo el segundo caso.
 
 | Columna | Tipo | Unidad | Origen | Estado |
 |---|---|---|---|---|
@@ -293,7 +296,7 @@ Las señales nocturnas no traen vínculo con el sueño. Se unen por ventana: el 
 |---|---|---|
 | Sueño | `night_date`, `session_id`, `start_at`, `end_at`, `hours`, `fragment_count`, `extra_sleep_min`, `score`, `efficiency_pct`, `physical_recovery`, `mental_recovery`, `movement_awakening`, `bedtime_hour`, `weekday`, `is_weekend_night` | `sleep_session` |
 | Etapas | `awake_min`, `light_min`, `deep_min`, `rem_min` | `sleep_stage` |
-| Oxígeno | `spo2_avg`, `spo2_min`, `low_minutes`, `intervals_below_90`, `intervals_below_85`, `spo2_recorded_hours` | `spo2_night`, `spo2_interval` |
+| Oxígeno | `spo2_avg`, `spo2_min`, `low_minutes`, `below_85_minutes`, `spo2_interval_min`, `spo2_recorded_hours` | `spo2_night`, `spo2_interval` |
 | Corazón | `hrv_rmssd_ms`, `hrv_sdnn_ms`, `night_hr_avg`, `night_hr_min` | `hrv_window`, `heart_rate_minute` |
 | Otras señales | `skin_temp_c`, `skin_temp_vs_baseline_c`, `respiratory_rate_avg` | `skin_temperature`, `respiratory_rate` |
 | Ronquido | `snoring_min`, `snoring_events`; vacío si la noche no se grabó | `snoring_event` |
@@ -309,8 +312,11 @@ Otras reglas de cálculo:
 - Todas las comparaciones de tiempo se hacen en UTC, para que una noche en otro huso se una bien.
 - `hrv_rmssd_ms` y `hrv_sdnn_ms` son la mediana de las ventanas de la noche; `night_hr_avg` y
   `night_hr_min`, el promedio y el mínimo del pulso por minuto entre el inicio y el fin del sueño.
-- `intervals_below_90` y `intervals_below_85` cuentan los intervalos de 10 minutos cuyo mínimo quedó bajo
-  90 % y bajo 85 %.
+- `below_85_minutes` suma la duración de los intervalos cuyo mínimo quedó bajo 85 %. `spo2_interval_min`
+  dice cuánto dura cada intervalo esa noche: 1 o 10 minutos. Con intervalos de 10 minutos la cifra es una
+  cota superior, porque el valor pudo estar bajo solo una parte del intervalo.
+- La tabla guarda además `utc_offset_min` y los identificadores `spo2_id`, `skin_id` y `breathing_id` de
+  los registros elegidos, que usa la pantalla de detalle de una noche.
 - El contexto del día toma el ejercicio, los pasos y el estrés de la fecha `night_date`.
 - `exercise_types` lista los tipos del día: el nombre propio si es un tipo creado por el usuario, el
   nombre del código estándar si se conoce, o `type <código>` si no.
@@ -341,9 +347,14 @@ que la columna no existe.
 
 | Tabla | Una fila es | Columnas |
 |---|---|---|
-| `tag` | Una etiqueta del catálogo | `tag_id`, `name`, `is_active` |
+| `tag` | Una etiqueta del catálogo | `tag_id`, `name`, `is_active`, `builtin_key` |
 | `annotation` | Una etiqueta puesta sobre una fecha | `day`, `tag_id`, `note`, `created_at`, `updated_at` |
 | `user_profile` | Datos personales opcionales para el informe | `name`, `birth_year`, `sex`, `height_cm` |
+
+Las ocho etiquetas iniciales llevan `builtin_key` (`alcohol`, `late_dinner`, `nasal_congestion`, `nap`,
+`illness`, `travel`, `medication`, `intense_training`) y la interfaz las traduce mientras el usuario no
+las renombre. Una novena etiqueta reservada, `note`, guarda la nota libre de cada fecha y nunca se
+muestra como etiqueta. Una etiqueta vale para el día y para la noche que empieza esa tarde.
 
 ## 4. Tablas de control
 

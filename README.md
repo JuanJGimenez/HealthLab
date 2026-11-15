@@ -8,9 +8,9 @@ Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica
 
 ## Estado
 
-Versión 0.6.0: la app ya se abre (etapas 1 a 5). Importa una exportación con vista previa, fusiona
-sin perder datos y muestra seis vistas: Oxígeno, Sueño, Corazón, Actividad, Relacionar y Datos, en
-español o en inglés. Falta el detalle de una noche, la vista del día, el informe y el empaquetado.
+Versión 0.7.0 (etapas 1 a 6a). Importa una exportación con vista previa, fusiona sin perder datos,
+muestra seis vistas y el detalle de cada noche con ocho pistas, y permite etiquetar fechas. En
+español o en inglés. Falta comparar dos noches, la vista del día, el informe y el empaquetado.
 
 ## Abrir la app
 

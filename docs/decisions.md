@@ -50,6 +50,10 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 42 | La librería de gráficos (Apache ECharts 5.6) viaja dentro de la app | La app no se conecta a internet; la licencia Apache 2.0 lo permite y va incluida |
 | 43 | La página se prueba en un navegador real, conectada a Python sin la ventana | Permite probar de punta a punta, de la app vacía al dashboard, en cada cambio |
 | 44 | Las tablas calculadas llevan su propio número de versión y se recalculan solas si cambia | Una actualización de la app puede cambiar una columna de `night` sin que el usuario tenga que reimportar |
+| 45 | La etapa 6 se divide en 6a (detalle de una noche y carga de etiquetas) y 6b (comparar dos noches y usar las etiquetas en las vistas) | Regla del plan: una etapa que se alarga se divide; la 6a ya se puede usar sola |
+| 46 | El tiempo bajo 85 % de oxígeno se mide en minutos, no en cantidad de intervalos | El reloj informa cada minuto en unas noches y cada 10 en otras; contar intervalos mezclaba las dos |
+| 47 | Las etiquetas iniciales se agregan con la primera migración de esquema (versión 2) | Desde la versión 0.6.0 el usuario pudo haber creado una base; todo cambio va por migración |
+| 48 | La nota libre de una fecha se guarda bajo una etiqueta reservada | Mantiene una sola tabla, `annotation`, como pedía el diseño |
 
 ## Notas
 
@@ -61,5 +65,6 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisiones 31 a 33.** Tomadas en la etapa 2b y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 34 a 36.** Tomadas en la etapa 3 y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 37 a 40.** Tomadas en la etapa 4 y aprobadas por el usuario el 15 de noviembre de 2026.
-- **Decisiones 41 a 44.** Tomadas en la etapa 5; pendientes de la confirmación del usuario.
+- **Decisiones 41 a 44.** Tomadas en la etapa 5 y aprobadas por el usuario el 15 de noviembre de 2026.
+- **Decisiones 45 a 48.** Tomadas en la etapa 6a; pendientes de la confirmación del usuario.
 - **Esquema.** La etapa 4 agregó la tabla `exercise_custom_type` a la versión 1 del esquema, sin migración, porque todavía no existe ninguna base en uso. Desde la primera entrega que el usuario instale, todo cambio de esquema irá por migración.

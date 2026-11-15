@@ -1,4 +1,4 @@
-"""Oxygen domain: the overnight summary and its 10-minute intervals.
+"""Oxygen domain: the overnight summary and its intervals of one or ten minutes.
 
 Samsung stores two kinds of rows in the oxygen table, told apart by ``tag_id``:
 overnight records (31301) and manual spot measurements (31000). Only overnight
