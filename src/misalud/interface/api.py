@@ -33,7 +33,7 @@ from misalud.queries.common import NightKind, NightScope, Period, Record
 from misalud.queries.coverage import short_window_notices
 from misalud.queries.day_detail import DAY_TRACKS, day_detail, hourly_profile
 from misalud.queries.night_detail import TRACKS, night_detail, night_differences
-from misalud.reports.content import PersonalData, ReportOptions, gather_report
+from misalud.reports.content import Cross, PersonalData, ReportOptions, gather_report
 from misalud.reports.pdf import render_pdf
 from misalud.storage.backup import list_backups, restore_backup
 from misalud.storage.database import Connection, open_database
@@ -385,12 +385,16 @@ class Api:
             options: ``watch_model`` (text) and ``include_personal`` (bool); with
                 personal data, also ``name``, ``birth_year``, ``sex``,
                 ``height_cm`` and ``weight_kg``, any of which may be missing.
+                ``blocks``: names of the optional blocks to add. ``crosses``:
+                pairs of metrics for the "day and night" block.
+                ``detail_nights``: up to two dates to show track by track.
         """
         target = self._dialogs.choose_save("misalud_informe.pdf")
         if target is None:
             return {"saved": False}
         settings = load_settings(self._paths.data_dir)
         watch = str(options.get("watch_model") or "").strip()
+        texts = load_texts(settings.language)
         now = datetime.now()
         with self._open() as connection:
             personal = None
@@ -419,6 +423,14 @@ class Api:
                 generated_at=now,
                 watch_model=watch or None,
                 personal=personal,
+                blocks=tuple(options.get("blocks") or ()),
+                crosses=tuple(
+                    Cross(x, y, texts[f"metric.{x}"], texts[f"metric.{y}"])
+                    for x, y in options.get("crosses") or ()
+                ),
+                detail_nights=tuple(
+                    date.fromisoformat(day) for day in options.get("detail_nights") or () if day
+                ),
             )
             content = gather_report(connection, report)
         pages = render_pdf(content, target)

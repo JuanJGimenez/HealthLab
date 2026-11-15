@@ -91,11 +91,13 @@ termina dentro de la consulta.
 | `annotations.profile` | Datos personales para el encabezado, guardados solo en la base |
 | `reports.content` | Reunir todas las cifras como datos simples, para probarlas sin leer un PDF |
 | `reports.texts` y `locales/` | Textos del informe y formato de números y fechas, por idioma |
-| `reports.charts` | Los dos gráficos, dibujados como formas vectoriales |
+| `reports.charts` | Los dos gráficos del bloque base, dibujados como formas vectoriales |
+| `reports.plots` | Los gráficos de los bloques opcionales: líneas, barras apiladas, puntos y las pistas de una noche |
 | `reports.pdf` | Armar las páginas A4 y guardar el PDF |
 
 El informe presenta datos y no interpreta: no trae diagnósticos ni recomendaciones. La primera
-página es siempre el resumen.
+página es siempre el resumen. Cada bloque opcional es una función registrada en una lista, igual
+que las pistas: sumar un bloque no obliga a tocar los demás.
 
 ## Módulos de la interfaz
 

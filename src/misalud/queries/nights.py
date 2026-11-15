@@ -91,7 +91,7 @@ MIN_NIGHTS_TO_CORRELATE: Final = 3
 VALID_OXYGEN: Final = f"spo2_recorded_hours >= {THRESHOLDS.spo2_min_recorded_hours}"
 
 
-def _value(metric: str) -> str:
+def metric_value(metric: str) -> str:
     """Return the SQL for a metric, blank on nights where it must not be reported."""
     if metric in OXYGEN_METRICS:
         return f"CASE WHEN {VALID_OXYGEN} THEN {metric} END"
@@ -254,7 +254,7 @@ def rolling_median(
     points = records(
         connection,
         f"""SELECT night_date, value FROM (
-            SELECT night_date, {_value(metric)} AS value FROM night WHERE {condition})
+            SELECT night_date, {metric_value(metric)} AS value FROM night WHERE {condition})
         WHERE value IS NOT NULL ORDER BY night_date""",
         parameters,
     )
@@ -299,7 +299,7 @@ def nights_by_month(
         UnknownMetricError: If a metric is not on the list.
     """
     check_metrics(metrics, NIGHT_METRICS)
-    averages = "".join(f", avg({_value(metric)}) AS {metric}" for metric in metrics)
+    averages = "".join(f", avg({metric_value(metric)}) AS {metric}" for metric in metrics)
     condition, parameters = period.condition("night_date")
     return records(
         connection,
@@ -325,7 +325,7 @@ def nights_by_weekday(
     """
     check_metrics([metric], NIGHT_METRICS)
     condition, parameters = period.condition("night_date")
-    value = _value(metric)
+    value = metric_value(metric)
     return records(
         connection,
         f"""SELECT weekday, count({value}) AS nights,
@@ -368,7 +368,7 @@ def relate(
     points = records(
         connection,
         f"""SELECT night_date, x, y, tagged
-        FROM (SELECT night_date, {_value(x)} AS x, {_value(y)} AS y,
+        FROM (SELECT night_date, {metric_value(x)} AS x, {metric_value(y)} AS y,
                 night_date IN (SELECT day FROM annotation WHERE tag_id = ?) AS tagged
             FROM night
             LEFT JOIN (SELECT day AS day_key, {_DAY_COLUMNS} FROM day) ON day_key = night_date

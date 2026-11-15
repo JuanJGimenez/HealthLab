@@ -3,6 +3,24 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [0.11.0] - 2026-11-15
+
+Etapa 8b del plan: bloques opcionales del informe. Cierra la etapa 8.
+
+### Agregado
+
+- Seis bloques opcionales, cada uno en su página: Corazón (pulso, variabilidad, tendencias y
+  electrocardiogramas), Sueño (horas, eficiencia y etapas por mes), Ronquido, Actividad (pasos por
+  mes y pulso por hora), Día y noche (el cruce elegido en Relacionar, con su correlación) y
+  Anotaciones (noches con y sin cada etiqueta).
+- Hasta dos noches en detalle, con etapas, oxígeno, pulso y ronquido sobre el mismo eje y las
+  franjas de oxígeno bajo 90 %.
+- El cuadro "Informe" de la app permite marcar los bloques y elegir las noches.
+
+### Corregido
+
+- Samsung guarda dos filas por electrocardiograma; el informe las muestra como una.
+
 ## [0.10.0] - 2026-11-15
 
 Etapa 8a del plan: el bloque base del informe para el médico.

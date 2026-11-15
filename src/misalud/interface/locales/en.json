@@ -346,7 +346,7 @@
   "metric.day.energy_score": "Day: energy score",
   "action.report": "Report",
   "report.title": "Report for the doctor",
-  "report.contents": "An A4 PDF with the night oxygen summary, the night-by-night chart, the 10 nights with the most time under 90 %, the patterns by weekday and by tag, and the method notes. It presents data; it holds no diagnosis and no recommendation.",
+  "report.contents": "An A4 PDF. It always opens with the night oxygen summary, the night-by-night chart, the 10 nights with the most time under 90 %, the patterns and the method notes. The blocks you tick are added as annexes. It presents data; it holds no diagnosis and no recommendation.",
   "report.period": "Period of the report",
   "report.watch": "Watch model (optional)",
   "report.personal": "Include personal data in the header",
@@ -357,5 +357,13 @@
   "report.weight": "Weight (kg)",
   "report.privacy": "The PDF holds health data. It is saved where you choose and the app sends it nowhere; sharing it is your decision.",
   "report.generate": "Create PDF",
-  "report.saved": "Saved as {name}, {pages} pages."
+  "report.saved": "Saved as {name}, {pages} pages.",
+  "report.blocks": "Optional blocks",
+  "report.block.heart": "Heart: pulse, variability and electrocardiograms",
+  "report.block.sleep": "Sleep: hours, efficiency and stages",
+  "report.block.snoring": "Snoring",
+  "report.block.activity": "Activity: steps, active minutes and pulse by hour",
+  "report.block.day_night": "Day and night: the relation chosen in Relate ({y} by {x})",
+  "report.block.annotations": "Annotations: nights with and without each tag",
+  "report.detail": "Nights in detail (optional, up to two)"
 }

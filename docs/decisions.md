@@ -64,6 +64,9 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 56 | El PDF se arma directamente en Python con la librería ReportLab, no imprimiendo una página de la ventana | La ventana no ofrece una forma confiable de guardar un PDF; así el informe es igual en cualquier computadora y cada cifra se prueba |
 | 57 | El modelo del reloj lo escribe el usuario; la altura y el peso se proponen desde la última medición de Samsung Health | La exportación no trae el nombre ni un perfil utilizable; el nombre, el año de nacimiento y el sexo quedan guardados solo en la base |
 | 58 | En el informe, las mitades se redondean hacia arriba | Es lo que se espera en papel: 57,5 se escribe 58 |
+| 59 | El resultado de cada electrocardiograma se imprime como el código del fabricante, sin traducirlo | Samsung no publica el significado de esos códigos y no se verificó; las dos filas que guarda por registro se muestran como una |
+| 60 | El bloque "Día y noche" imprime el cruce que esté elegido en la vista Relacionar | Es la forma más directa de "elegir en Relacionar"; el motor admite varios cruces si más adelante hiciera falta |
+| 61 | Las noches en detalle del informe muestran cuatro pistas: etapas, oxígeno, pulso y ronquido | Son las que se leen en papel; las ocho pistas quedan en la pantalla |
 
 ## Notas
 
@@ -79,5 +82,6 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisiones 45 a 48.** Tomadas en la etapa 6a y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 49 a 51.** Tomadas en la etapa 6b y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 52 a 54.** Tomadas en la etapa 7 y aprobadas por el usuario el 15 de noviembre de 2026.
-- **Decisiones 55 a 58.** Tomadas en la etapa 8a; pendientes de la confirmación del usuario.
+- **Decisiones 55 a 58.** Tomadas en la etapa 8a y aprobadas por el usuario el 15 de noviembre de 2026. Sobre la 56, el usuario preguntó por qué la ventana no guardaba el PDF: el componente de Edge sí puede, pero la librería de la ventana no ofrece una forma documentada de pedírselo; se mantuvo el PDF armado en Python.
+- **Decisiones 59 a 61.** Tomadas en la etapa 8b; pendientes de la confirmación del usuario.
 - **Esquema.** La etapa 4 agregó la tabla `exercise_custom_type` a la versión 1 del esquema, sin migración, porque todavía no existe ninguna base en uso. Desde la primera entrega que el usuario instale, todo cambio de esquema irá por migración.

@@ -829,6 +829,7 @@ async function openDay(day) {
   if (answer.has_night) buttons.push(el('button', {class: 'btn primary', type: 'button', id: 'day-open-night', text: t('day.open_night'), onclick: () => { closeDialog(); openNight(day); }}));
   openDialog(t('day.title', {date: fdate(day)}), body, buttons);
 }
+const REPORT_BLOCKS = ['heart', 'sleep', 'snoring', 'activity', 'day_night', 'annotations'];
 async function showReport() {
   const answer = await call('report_options');
   if (!answer.ok) return showError(answer.error);
@@ -849,14 +850,21 @@ async function showReport() {
   const done = el('span', {class: 'stat', id: 'report-done', 'aria-live': 'polite'});
   const create = el('button', {class: 'btn primary', type: 'button', id: 'report-create', text: t('report.generate'), onclick: async () => {
     const value = id => $('#' + id).value;
+    const blocks = REPORT_BLOCKS.filter(name => $('#report-block-' + name).checked);
     const result = await call('create_report', state.period, {watch_model: value('report-watch'), include_personal: include.checked,
+      blocks, crosses: blocks.includes('day_night') ? [[state.x, state.y]] : [], detail_nights: [value('report-night-1'), value('report-night-2')].filter(Boolean),
       name: value('report-name'), birth_year: value('report-year'), sex: value('report-sex'), height_cm: value('report-height'), weight_kg: value('report-weight')});
     if (!result.ok) return showError(result.error);
     done.textContent = result.saved ? t('report.saved', {name: result.file_name, pages: result.pages}) : '';
   }});
+  const blockChecks = REPORT_BLOCKS.map(name => el('label', {class: 'check'}, [el('input', {type: 'checkbox', id: 'report-block-' + name}),
+    document.createTextNode(t('report.block.' + name, {x: t('metric.' + state.x), y: t('metric.' + state.y)}))]));
+  const nightInput = id => { const input = el('input', {type: 'date', id}); input.min = state.boot.available.first_night; input.max = state.boot.available.last_night; return input; };
   openDialog(t('report.title'), [
     el('p', {class: 'cap', text: t('report.contents')}),
     el('div', {class: 'form'}, [el('label', {text: t('report.period')}), el('span', {class: 'stat', text: periodText}), ...watch]),
+    el('h3', {text: t('report.blocks')}), ...blockChecks,
+    el('div', {class: 'form'}, [el('label', {text: t('report.detail')}), el('div', {class: 'row'}, [nightInput('report-night-1'), nightInput('report-night-2')])]),
     el('label', {class: 'check'}, [include, document.createTextNode(t('report.personal'))]),
     personal, el('p', {class: 'note', text: t('report.privacy')}), done], [create]);
 }

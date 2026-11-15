@@ -346,7 +346,7 @@
   "metric.day.energy_score": "Día: puntaje de energía",
   "action.report": "Informe",
   "report.title": "Informe para el médico",
-  "report.contents": "Un PDF en tamaño A4 con el resumen de oxígeno nocturno, el gráfico noche a noche, las 10 noches con más tiempo bajo 90 %, los patrones por día de la semana y por etiqueta, y las notas de método. Presenta datos; no incluye diagnósticos ni recomendaciones.",
+  "report.contents": "Un PDF en tamaño A4. Siempre abre con el resumen de oxígeno nocturno, el gráfico noche a noche, las 10 noches con más tiempo bajo 90 %, los patrones y las notas de método. Los bloques que marques se suman como anexos. Presenta datos; no incluye diagnósticos ni recomendaciones.",
   "report.period": "Período del informe",
   "report.watch": "Modelo del reloj (opcional)",
   "report.personal": "Incluir datos personales en el encabezado",
@@ -357,5 +357,13 @@
   "report.weight": "Peso (kg)",
   "report.privacy": "El PDF contiene datos de salud. Se guarda donde elijas y la app no lo envía a ningún lado; compartirlo es tu decisión.",
   "report.generate": "Generar PDF",
-  "report.saved": "Guardado como {name}, {pages} páginas."
+  "report.saved": "Guardado como {name}, {pages} páginas.",
+  "report.blocks": "Bloques opcionales",
+  "report.block.heart": "Corazón: pulso, variabilidad y electrocardiogramas",
+  "report.block.sleep": "Sueño: horas, eficiencia y etapas",
+  "report.block.snoring": "Ronquido",
+  "report.block.activity": "Actividad: pasos, minutos activos y pulso por hora",
+  "report.block.day_night": "Día y noche: el cruce elegido en Relacionar ({y} según {x})",
+  "report.block.annotations": "Anotaciones: noches con y sin cada etiqueta",
+  "report.detail": "Noches en detalle (opcional, hasta dos)"
 }

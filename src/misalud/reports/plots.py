@@ -1,0 +1,436 @@
+"""Charts of the optional report blocks, built on one small plotting helper.
+
+Like the two base charts, they are plain vector shapes meant for paper: series
+differ by line pattern as well as colour, so they survive a grey printer.
+"""
+
+from __future__ import annotations
+
+import math
+from collections.abc import Sequence
+from datetime import datetime
+from typing import Any
+
+from reportlab.graphics.shapes import Circle, Drawing, Line, PolyLine, Rect, String
+from reportlab.lib.colors import HexColor
+
+from misalud.reports.charts import BAR, FONT, GRID, INK, MUTED, nice_axis
+
+ORANGE = HexColor("#eb6834")
+GREEN = HexColor("#1baf7a")
+SHADE = HexColor("#fbe3d6")
+SERIES_COLORS = (BAR, ORANGE, GREEN)
+SERIES_DASHES: tuple[list[int] | None, ...] = (None, [4, 2], [1, 2])
+STAGE_LEVELS = {40003: 0, 40002: 1, 40004: 2, 40001: 3}
+"""Height of each sleep stage on the stage track: deep, light, REM, awake."""
+
+
+def nice_range(low: float, high: float) -> tuple[float, float, int]:
+    """Return round limits for an axis and the number of equal parts between them.
+
+    An axis whose values start near zero starts at zero. Otherwise it starts at
+    a round number just under the lowest value, so small changes stay visible.
+
+    Args:
+        low: Smallest value to show.
+        high: Largest value to show.
+
+    Returns:
+        The lower limit, the upper limit and the number of divisions.
+    """
+    if high <= low:
+        high = low + 1
+    if 0 <= low < high / 2:
+        top, divisions = nice_axis(high)
+        return 0.0, top, divisions
+    step, _ = nice_axis((high - low) / 4)
+    bottom = round(math.floor(low / step) * step, 9)
+    top = round(math.ceil(high / step) * step, 9)
+    return bottom, top, max(round((top - bottom) / step), 1)
+
+
+class Plot:
+    """A drawing with a value axis, a grid and helpers to place things on it."""
+
+    def __init__(
+        self,
+        width: float,
+        height: float,
+        x_range: tuple[float, float],
+        y_range: tuple[float, float],
+        *,
+        left: float = 30,
+        top: float = 16,
+        bottom: float = 20,
+    ) -> None:
+        """Create an empty plot.
+
+        Args:
+            width: Width of the drawing, in points.
+            height: Height of the drawing, in points.
+            x_range: Values at the left and right edges.
+            y_range: Values at the bottom and top edges.
+            left: Space kept for the value labels.
+            top: Space kept above the plot.
+            bottom: Space kept for the labels under the plot.
+        """
+        self.drawing = Drawing(width, height)
+        self.left, self.bottom = left, bottom
+        self.plot_width, self.plot_height = width - left - 8, height - top - bottom
+        self.x_low, self.x_high = x_range
+        self.y_low, self.y_high = y_range
+        self.width, self.height = width, height
+
+    def x(self, value: float) -> float:
+        """Return the horizontal position of a value."""
+        span = (self.x_high - self.x_low) or 1
+        return self.left + self.plot_width * (value - self.x_low) / span
+
+    def y(self, value: float) -> float:
+        """Return the vertical position of a value."""
+        span = (self.y_high - self.y_low) or 1
+        return self.bottom + self.plot_height * (value - self.y_low) / span
+
+    def add(self, shape: Any) -> None:
+        """Add a shape to the drawing."""
+        self.drawing.add(shape)
+
+    def text(
+        self, x: float, y: float, text: str, anchor: str = "middle", color: Any = MUTED
+    ) -> None:
+        """Write a small label."""
+        self.add(String(x, y, text, fontName=FONT, fontSize=7, fillColor=color, textAnchor=anchor))
+
+    def grid(self, divisions: int, unit: str = "", labels: Sequence[str] | None = None) -> None:
+        """Draw the horizontal lines with their value labels and the unit above."""
+        for step in range(divisions + 1):
+            value = self.y_low + (self.y_high - self.y_low) * step / divisions
+            self.add(
+                Line(
+                    self.left,
+                    self.y(value),
+                    self.left + self.plot_width,
+                    self.y(value),
+                    strokeColor=GRID,
+                    strokeWidth=0.5,
+                )
+            )
+            label = labels[step] if labels else f"{value:g}"
+            self.text(self.left - 4, self.y(value) - 2.5, label, "end")
+        if unit:
+            self.text(2, self.height - 7, unit, "start")
+
+    def x_label(self, value: float, text: str) -> None:
+        """Write a label under the plot at a horizontal value."""
+        self.text(self.x(value), self.bottom - 11, text)
+
+    def line(
+        self, points: Sequence[tuple[float, float]], index: int = 0, width: float = 1.2
+    ) -> None:
+        """Draw a line through points, in the colour and pattern of a series."""
+        if len(points) < 2:
+            return
+        flat = [coordinate for x, y in points for coordinate in (self.x(x), self.y(y))]
+        self.add(
+            PolyLine(
+                flat,
+                strokeColor=SERIES_COLORS[index % 3],
+                strokeWidth=width,
+                strokeDashArray=SERIES_DASHES[index % 3],
+            )
+        )
+
+    def legend(self, names: Sequence[str]) -> None:
+        """Write the series names at the top right, each with its line sample."""
+        x = self.left + self.plot_width
+        for index in reversed(range(len(names))):
+            width = len(names[index]) * 3.6
+            self.text(x, self.height - 8, names[index], "end", INK)
+            x -= width + 4
+            self.add(
+                Line(
+                    x - 14,
+                    self.height - 5.5,
+                    x,
+                    self.height - 5.5,
+                    strokeColor=SERIES_COLORS[index % 3],
+                    strokeWidth=1.2,
+                    strokeDashArray=SERIES_DASHES[index % 3],
+                )
+            )
+            x -= 24
+
+
+def _thin(count: int, most: int = 11) -> int:
+    """Return how many categories to skip between labels so they do not collide."""
+    return max(math.ceil(count / most), 1)
+
+
+def line_chart(
+    labels: Sequence[str],
+    series: Sequence[tuple[str, Sequence[float | None]]],
+    *,
+    width: float,
+    height: float,
+    unit: str,
+) -> Drawing:
+    """Draw one line per series over categories such as months or hours.
+
+    A missing value breaks the line. With more than one series a legend is drawn.
+
+    Args:
+        labels: Name of each category.
+        series: Name and values of each series; ``None`` marks a missing value.
+        width: Width of the drawing, in points.
+        height: Height of the drawing, in points.
+        unit: Unit written above the value axis.
+
+    Returns:
+        The drawing.
+    """
+    values = [value for _, points in series for value in points if value is not None]
+    low, high, divisions = nice_range(min(values, default=0), max(values, default=1))
+    plot = Plot(width, height, (0, max(len(labels) - 1, 1)), (low, high))
+    plot.grid(divisions, unit)
+    for index in range(0, len(labels), _thin(len(labels))):
+        plot.x_label(index, labels[index])
+    for number, (_, points) in enumerate(series):
+        run: list[tuple[float, float]] = []
+        for index, value in enumerate([*points, None]):
+            if value is None:
+                plot.line(run, number)
+                if len(run) == 1:
+                    plot.add(
+                        Circle(
+                            plot.x(run[0][0]),
+                            plot.y(run[0][1]),
+                            1.3,
+                            fillColor=SERIES_COLORS[number % 3],
+                            strokeColor=None,
+                        )
+                    )
+                run = []
+            else:
+                run.append((index, value))
+    if len(series) > 1:
+        plot.legend([name for name, _ in series])
+    return plot.drawing
+
+
+def stacked_chart(
+    labels: Sequence[str],
+    series: Sequence[tuple[str, Sequence[float | None]]],
+    *,
+    width: float,
+    height: float,
+    unit: str,
+) -> Drawing:
+    """Draw one bar per category, made of one piece per series.
+
+    Args:
+        labels: Name of each category.
+        series: Name and values of each series, bottom piece first.
+        width: Width of the drawing, in points.
+        height: Height of the drawing, in points.
+        unit: Unit written above the value axis.
+
+    Returns:
+        The drawing.
+    """
+    totals = [sum(points[index] or 0 for _, points in series) for index in range(len(labels))]
+    top, divisions = nice_axis(max(totals, default=0))
+    plot = Plot(width, height, (-0.5, max(len(labels), 1) - 0.5), (0, top))
+    plot.grid(divisions, unit)
+    half = plot.plot_width / max(len(labels), 1) * 0.3
+    for index, label in enumerate(labels):
+        if index % _thin(len(labels)) == 0:
+            plot.x_label(index, label)
+        base = 0.0
+        for number, (_, points) in enumerate(series):
+            value = points[index] or 0
+            if value:
+                plot.add(
+                    Rect(
+                        plot.x(index) - half,
+                        plot.y(base),
+                        2 * half,
+                        plot.y(base + value) - plot.y(base),
+                        fillColor=SERIES_COLORS[number % 3],
+                        strokeColor=HexColor("#ffffff"),
+                        strokeWidth=0.4,
+                    )
+                )
+            base += value
+    plot.legend([name for name, _ in series])
+    return plot.drawing
+
+
+def points_chart(
+    dots: Sequence[tuple[float, float]],
+    *,
+    width: float,
+    height: float,
+    unit: str,
+    line: Sequence[tuple[float, float]] = (),
+    x_ticks: Sequence[tuple[float, str]] | None = None,
+    x_title: str = "",
+) -> Drawing:
+    """Draw points, with an optional line over them.
+
+    Used for a trend (one faint point per night and the rolling median as a
+    line) and for a scatter of two measures.
+
+    Args:
+        dots: Position of each point.
+        width: Width of the drawing, in points.
+        height: Height of the drawing, in points.
+        unit: Unit, or name, written above the value axis.
+        line: Points of the line, in order.
+        x_ticks: Positions and labels along the horizontal axis. Without them,
+            round numbers are used.
+        x_title: Name written under the horizontal axis.
+
+    Returns:
+        The drawing; an empty frame when there are no points.
+    """
+    xs = [x for x, _ in dots] or [0.0, 1.0]
+    ys = [y for _, y in [*dots, *line]] or [0.0, 1.0]
+    y_low, y_high, divisions = nice_range(min(ys), max(ys))
+    if x_ticks is None:
+        x_low, x_high, parts = nice_range(min(xs), max(xs))
+        x_ticks = [
+            (
+                x_low + (x_high - x_low) * step / parts,
+                f"{x_low + (x_high - x_low) * step / parts:g}",
+            )
+            for step in range(parts + 1)
+        ]
+    else:
+        x_low, x_high = min(xs), max(max(xs), min(xs) + 1)
+    plot = Plot(width, height, (x_low, x_high), (y_low, y_high), bottom=30 if x_title else 20)
+    plot.grid(divisions, unit)
+    for position, label in x_ticks:
+        if x_low <= position <= x_high:
+            plot.x_label(position, label)
+    if x_title:
+        plot.text(plot.left + plot.plot_width / 2, 4, x_title)
+    for x, y in dots:
+        plot.add(
+            Circle(plot.x(x), plot.y(y), 1.1, fillColor=BAR, strokeColor=None, fillOpacity=0.45)
+        )
+    plot.line(line, 1, 1.4)
+    return plot.drawing
+
+
+def _hours(moment: str, start: datetime) -> float:
+    """Return the hours between the start of a night and a moment."""
+    return (datetime.fromisoformat(moment) - start).total_seconds() / 3600
+
+
+def tracks_chart(detail: dict[str, Any], names: Sequence[str], *, width: float) -> Drawing:
+    """Draw the four main tracks of one night on a shared time axis.
+
+    From top to bottom: sleep stages, lowest oxygen of each interval with the
+    90 % line, pulse, and snoring. Stretches with oxygen under 90 % are shaded
+    across every track.
+
+    Args:
+        detail: Result of ``night_detail``.
+        names: Titles of the four tracks, then of the four stages from deep to
+            awake (eight texts).
+        width: Width of the drawing, in points.
+
+    Returns:
+        The drawing.
+    """
+    night, tracks = detail["night"], detail["tracks"]
+    start = datetime.fromisoformat(night["start_at"])
+    length = max(_hours(night["end_at"], start), 0.5)
+    lane, gap, label_space = 52.0, 20.0, 18.0
+    height = 4 * (lane + gap) + label_space
+    drawing = Drawing(width, height)
+    oxygen = [(span, span["lowest"]) for span in tracks["oxygen"] if span["lowest"] is not None]
+    pulse = [(point["at"], point["value"]) for point in tracks["pulse"]]
+    ranges = [
+        (0.0, 3.0, 3),
+        nice_range(min([80.0, *(low for _, low in oxygen)]), 100.0),
+        nice_range(min((v for _, v in pulse), default=40), max((v for _, v in pulse), default=100)),
+        (0.0, 1.0, 1),
+    ]
+    for index in range(4):
+        low, high, divisions = ranges[index]
+        offset = height - (index + 1) * (lane + gap)
+        plot = Plot(
+            width, lane + label_space, (0, length), (low, high), left=44, top=0, bottom=label_space
+        )
+        plot.drawing = drawing
+        plot.bottom = offset
+        plot.height = offset + lane + 14
+        for span in detail["low_spans"]:
+            left, right = plot.x(_hours(span["from"], start)), plot.x(_hours(span["to"], start))
+            drawing.add(
+                Rect(left, offset, max(right - left, 0.6), lane, fillColor=SHADE, strokeColor=None)
+            )
+        if index == 0:
+            plot.grid(3, labels=list(names[4:8]))
+            steps = [
+                (_hours(moment, start), float(STAGE_LEVELS.get(span["code"], 1)))
+                for span in tracks["stages"]
+                for moment in (span["from"], span["to"])
+            ]
+            plot.line(steps, 0, 0.9)
+        elif index == 1:
+            plot.grid(divisions)
+            steps = [
+                (_hours(moment, start), low)
+                for span, low in oxygen
+                for moment in (span["from"], span["to"])
+            ]
+            plot.line(steps, 0, 0.9)
+            drawing.add(
+                Line(
+                    plot.left,
+                    plot.y(90),
+                    plot.left + plot.plot_width,
+                    plot.y(90),
+                    strokeColor=INK,
+                    strokeWidth=0.5,
+                    strokeDashArray=[3, 2],
+                )
+            )
+        elif index == 2:
+            plot.grid(divisions)
+            plot.line([(_hours(moment, start), value) for moment, value in pulse], 1, 0.7)
+        else:
+            drawing.add(
+                Line(
+                    plot.left,
+                    offset,
+                    plot.left + plot.plot_width,
+                    offset,
+                    strokeColor=GRID,
+                    strokeWidth=0.5,
+                )
+            )
+            for span in tracks["snoring"]:
+                left, right = plot.x(_hours(span["from"], start)), plot.x(_hours(span["to"], start))
+                drawing.add(
+                    Rect(
+                        left,
+                        offset,
+                        max(right - left, 0.5),
+                        lane * 0.7,
+                        fillColor=GREEN,
+                        strokeColor=None,
+                    )
+                )
+        empty = not (tracks["stages"], oxygen, pulse, tracks["snoring"])[index]
+        title = names[index] + (f" · {names[8]}" if empty else "")
+        drawing.add(String(2, offset + lane + 9, title, fontName=FONT, fontSize=7.5, fillColor=INK))
+        if index == 3:
+            for hour in range(math.floor(length) + 1):
+                clock = (start.hour + hour + (1 if start.minute else 0)) % 24
+                position = hour + ((60 - start.minute) % 60) / 60
+                if position <= length:
+                    plot.x_label(position, f"{clock:02d}:00")
+    return drawing

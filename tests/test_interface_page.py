@@ -198,8 +198,11 @@ def test_from_an_empty_app_to_a_dashboard_in_two_languages(
     assert page.is_visible("#report-personal")
     page.fill("#report-name", "Ana")
     page.fill("#report-year", "1982")
+    page.check("#report-block-sleep")
+    page.check("#report-block-day_night")
+    page.fill("#report-night-1", "2026-01-03")
     page.click("#report-create")
-    page.wait_for_function("document.querySelector('#report-done').textContent.includes('2 p')")
+    page.wait_for_function("document.querySelector('#report-done').textContent.includes('5 p')")
     assert dialogs.save.read_bytes().startswith(b"%PDF")
     assert api.report_options()["profile"]["name"] == "Ana"
     page.click("#dialog-close")

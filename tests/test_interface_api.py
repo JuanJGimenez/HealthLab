@@ -432,3 +432,21 @@ def test_the_report_is_saved_as_a_pdf_where_the_user_chooses(
     assert wrong["error"] == "AnnotationError: birth year out of range: 1492"
     api.set_language("en")
     assert api.create_report("all", {})["saved"] is True
+
+
+def test_the_report_can_add_blocks_a_relation_and_nights_in_detail(
+    api: Api, dialogs: FakeDialogs, tmp_path: Path
+) -> None:
+    do_import(api, dialogs, tmp_path, 6)
+    dialogs.save = tmp_path / "completo.pdf"
+    asked = {
+        "blocks": ["heart", "sleep", "day_night"],
+        "crosses": [["day.hr_avg", "low_minutes"]],
+        "detail_nights": ["2026-01-03", ""],
+    }
+    assert api.create_report("all", asked)["pages"] == 2 + 3 + 1
+    assert api.create_report("all", {"blocks": ["weather"]})["error"] == (
+        "ValueError: unknown report blocks: weather"
+    )
+    too_many = {"detail_nights": ["2026-01-01", "2026-01-02", "2026-01-03"]}
+    assert api.create_report("all", too_many)["ok"] is False

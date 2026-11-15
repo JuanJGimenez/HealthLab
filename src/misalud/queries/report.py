@@ -6,11 +6,13 @@ least three hours of oxygen recording count.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import replace
 
 from misalud.config import THRESHOLDS
-from misalud.queries.common import ALL_TIME, NightScope, Period, Record, records
-from misalud.queries.nights import VALID_OXYGEN
+from misalud.queries.common import ALL_TIME, NightScope, Period, Record, check_metrics, records
+from misalud.queries.days import DAY_METRICS
+from misalud.queries.nights import NIGHT_METRICS, VALID_OXYGEN, metric_value
 from misalud.storage.database import Connection
 from misalud.storage.schema import NOTE_TAG_KEY
 
@@ -138,3 +140,70 @@ def tag_patterns(connection: Connection, period: Period = ALL_TIME) -> list[Reco
             pattern[f"{label}_share_pct"] = 100.0 * sustained / nights
         patterns.append(pattern)
     return patterns
+
+
+def night_averages(
+    connection: Connection, metrics: Sequence[str], period: Period = ALL_TIME
+) -> Record:
+    """Return the average of several night metrics over a period.
+
+    Raises:
+        UnknownMetricError: If a metric is not in ``NIGHT_METRICS``.
+    """
+    check_metrics(metrics, NIGHT_METRICS)
+    condition, parameters = period.condition("night_date")
+    columns = ", ".join(f"avg({metric_value(metric)}) AS {metric}" for metric in metrics)
+    return records(connection, f"SELECT {columns} FROM night WHERE {condition}", parameters)[0]
+
+
+def night_metric_stats(connection: Connection, metric: str, period: Period = ALL_TIME) -> Record:
+    """Return how many nights have a metric, with its median and its largest value.
+
+    Raises:
+        UnknownMetricError: If the metric is not in ``NIGHT_METRICS``.
+    """
+    check_metrics([metric], NIGHT_METRICS)
+    condition, parameters = period.condition("night_date")
+    value = metric_value(metric)
+    return records(
+        connection,
+        f"""SELECT count({value}) AS nights, median({value}) AS median, max({value}) AS maximum
+        FROM night WHERE {condition}""",
+        parameters,
+    )[0]
+
+
+def day_averages(
+    connection: Connection, metrics: Sequence[str], period: Period = ALL_TIME
+) -> Record:
+    """Return the number of days of a period and the average of several day metrics.
+
+    Raises:
+        UnknownMetricError: If a metric is not in ``DAY_METRICS``.
+    """
+    check_metrics(metrics, DAY_METRICS)
+    condition, parameters = period.condition("day")
+    columns = "".join(f", avg({metric}) AS {metric}" for metric in metrics)
+    return records(
+        connection, f"SELECT count(*) AS days{columns} FROM day WHERE {condition}", parameters
+    )[0]
+
+
+def ecg_list(connection: Connection, period: Period = ALL_TIME) -> list[Record]:
+    """Return the electrocardiograms taken in a period, oldest first.
+
+    Returns:
+        One record per recording with ``start_at``, ``mean_hr`` and
+        ``classification_code``, Samsung's own result code. Samsung stores two
+        rows for the same recording, one of them without a result; they are
+        shown as one. A pulse of 0 means the watch could not read it and is
+        given as missing.
+    """
+    condition, parameters = period.condition("CAST(start_at AS DATE)")
+    return records(
+        connection,
+        f"""SELECT start_at, max(nullif(mean_hr, 0)) AS mean_hr,
+            max(classification_code) AS classification_code
+        FROM ecg WHERE {condition} GROUP BY start_at ORDER BY start_at""",
+        parameters,
+    )
