@@ -33,7 +33,7 @@ class Period:
     start: date | None = None
     end: date | None = None
 
-    def condition(self, column: str) -> tuple[str, list[date]]:
+    def condition(self, column: str) -> tuple[str, list[object]]:
         """Return the SQL condition that keeps the rows of this period.
 
         Args:
@@ -42,7 +42,8 @@ class Period:
         Returns:
             The condition text and its parameters, in order.
         """
-        parts, parameters = ["TRUE"], []
+        parts: list[str] = ["TRUE"]
+        parameters: list[object] = []
         if self.start is not None:
             parts.append(f"{column} >= ?")
             parameters.append(self.start)
@@ -57,22 +58,31 @@ NightKind = Literal["all", "weekend", "weekdays"]
 
 @dataclass(frozen=True, slots=True)
 class NightScope(Period):
-    """The nights a screen is looking at: a period and, optionally, a kind of night.
+    """The nights a screen is looking at: a period, a kind of night and a tag.
 
     Attributes:
         nights: ``weekend`` keeps Friday and Saturday nights, ``weekdays`` keeps
             Sunday to Thursday nights, ``all`` keeps every night.
+        tag_id: A tag to filter by, or ``None`` for no tag filter.
+        tagged: With a tag, True keeps the nights whose date carries it and
+            False keeps the nights whose date does not.
     """
 
     nights: NightKind = "all"
+    tag_id: int | None = None
+    tagged: bool = True
 
-    def condition(self, column: str) -> tuple[str, list[date]]:
-        """Return the SQL condition for the period and the kind of night."""
+    def condition(self, column: str) -> tuple[str, list[object]]:
+        """Return the SQL condition for the period, the kind of night and the tag."""
         text, parameters = Period.condition(self, column)
         if self.nights == "weekend":
             text += " AND is_weekend_night"
         elif self.nights == "weekdays":
             text += " AND NOT is_weekend_night"
+        if self.tag_id is not None:
+            membership = "IN" if self.tagged else "NOT IN"
+            text += f" AND {column} {membership} (SELECT day FROM annotation WHERE tag_id = ?)"
+            parameters.append(self.tag_id)
         return text, parameters
 
 

@@ -10,10 +10,13 @@ import pytest
 
 from misalud.annotations.store import (
     AnnotationError,
+    add_tag,
     day_annotations,
     list_tags,
+    rename_tag,
     set_note,
     set_tag,
+    set_tag_active,
 )
 from misalud.storage.database import Connection, open_database
 from misalud.storage.merge import ImportInfo, apply_merge
@@ -103,3 +106,49 @@ def test_an_import_never_touches_annotations(db: Connection) -> None:
     )
     apply_merge(db, {"steps_day": frame}, info=ImportInfo("x.zip", datetime(2026, 1, 6)))
     assert day_annotations(db, DAY) == {"tags": [1], "note": "cumpleaños"}
+
+
+def test_the_user_can_add_tags_of_their_own(db: Connection) -> None:
+    new_id = add_tag(db, "  mate   de noche ")
+    assert new_id == 10
+    assert list_tags(db)[-1] == {
+        "tag_id": 10,
+        "name": "mate de noche",
+        "builtin_key": None,
+        "is_active": True,
+    }
+    set_tag(db, DAY, new_id, True)
+    assert day_annotations(db, DAY)["tags"] == [10]
+    for name, reason in [
+        ("  ", "needs a name"),
+        ("Mate de Noche", "already"),
+        ("alcohol", "already"),
+    ]:
+        with pytest.raises(AnnotationError, match=reason):
+            add_tag(db, name)
+
+
+def test_a_tag_can_be_renamed_and_keeps_its_dates(db: Connection) -> None:
+    set_tag(db, DAY, 2, True)
+    rename_tag(db, 2, "Cena después de las 22")
+    assert list_tags(db)[1]["name"] == "Cena después de las 22"
+    assert list_tags(db)[1]["builtin_key"] == "late_dinner"
+    assert day_annotations(db, DAY)["tags"] == [2]
+    rename_tag(db, 2, "cena después de las 22")
+    with pytest.raises(AnnotationError, match="already a tag named alcohol"):
+        rename_tag(db, 2, "alcohol")
+    with pytest.raises(AnnotationError, match="needs a name"):
+        rename_tag(db, 2, "")
+    with pytest.raises(AnnotationError, match="unknown tag: 9"):
+        rename_tag(db, 9, "notas")
+
+
+def test_a_tag_switched_off_keeps_its_dates_and_can_come_back(db: Connection) -> None:
+    set_tag(db, DAY, 4, True)
+    set_tag_active(db, 4, False)
+    assert 4 not in [tag["tag_id"] for tag in list_tags(db)]
+    assert day_annotations(db, DAY)["tags"] == [4]
+    set_tag_active(db, 4, True)
+    assert 4 in [tag["tag_id"] for tag in list_tags(db)]
+    with pytest.raises(AnnotationError, match="unknown tag: 77"):
+        set_tag_active(db, 77, False)

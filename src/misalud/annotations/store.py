@@ -86,10 +86,7 @@ def set_tag(
     Raises:
         AnnotationError: If the tag does not exist or is the reserved note tag.
     """
-    known = {tag["tag_id"] for tag in list_tags(connection, include_inactive=True)}
-    if tag_id not in known:
-        msg = f"unknown tag: {tag_id}"
-        raise AnnotationError(msg)
+    _require_tag(connection, tag_id)
     if not present:
         connection.execute("DELETE FROM annotation WHERE day = ? AND tag_id = ?", [day, tag_id])
         return
@@ -122,3 +119,83 @@ def set_note(connection: Connection, day: date, text: str, *, now: datetime | No
         ON CONFLICT DO UPDATE SET note = excluded.note, updated_at = excluded.updated_at""",
         [day, note_tag, cleaned, moment, moment],
     )
+
+
+def _clean_name(connection: Connection, name: str, *, except_tag: int | None = None) -> str:
+    """Return a tag name ready to store, or refuse it.
+
+    Raises:
+        AnnotationError: If the name is empty or another tag already uses it.
+    """
+    cleaned = " ".join(name.split())
+    if not cleaned:
+        msg = "a tag needs a name"
+        raise AnnotationError(msg)
+    taken = connection.execute(
+        "SELECT count(*) FROM tag WHERE lower(name) = lower(?) AND tag_id IS DISTINCT FROM ?",
+        [cleaned, except_tag],
+    ).fetchall()
+    if taken[0][0]:
+        msg = f"there is already a tag named {cleaned}"
+        raise AnnotationError(msg)
+    return cleaned
+
+
+def _require_tag(connection: Connection, tag_id: int) -> None:
+    """Make sure a tag exists and is not the reserved note tag.
+
+    Raises:
+        AnnotationError: Otherwise.
+    """
+    if tag_id not in {tag["tag_id"] for tag in list_tags(connection, include_inactive=True)}:
+        msg = f"unknown tag: {tag_id}"
+        raise AnnotationError(msg)
+
+
+def add_tag(connection: Connection, name: str) -> int:
+    """Create a tag of the user's own.
+
+    Args:
+        connection: An open connection.
+        name: The name to show. Repeated blank space is collapsed.
+
+    Returns:
+        The id of the new tag.
+
+    Raises:
+        AnnotationError: If the name is empty or already in use.
+    """
+    cleaned = _clean_name(connection, name)
+    rows = connection.execute(
+        """INSERT INTO tag (tag_id, name, is_active, builtin_key)
+        SELECT coalesce(max(tag_id), 0) + 1, ?, TRUE, NULL FROM tag RETURNING tag_id""",
+        [cleaned],
+    ).fetchall()
+    return int(rows[0][0])
+
+
+def rename_tag(connection: Connection, tag_id: int, name: str) -> None:
+    """Change the name of a tag; the dates marked with it keep their mark.
+
+    A built-in tag that is renamed stops being translated: it shows the name
+    the user gave it, in every language.
+
+    Raises:
+        AnnotationError: If the tag does not exist, or the name is empty or in use.
+    """
+    _require_tag(connection, tag_id)
+    cleaned = _clean_name(connection, name, except_tag=tag_id)
+    connection.execute("UPDATE tag SET name = ? WHERE tag_id = ?", [cleaned, tag_id])
+
+
+def set_tag_active(connection: Connection, tag_id: int, active: bool) -> None:
+    """Switch a tag off or back on.
+
+    A tag that is off is no longer offered when annotating, but the dates
+    already marked with it keep their mark: nothing is deleted.
+
+    Raises:
+        AnnotationError: If the tag does not exist.
+    """
+    _require_tag(connection, tag_id)
+    connection.execute("UPDATE tag SET is_active = ? WHERE tag_id = ?", [active, tag_id])

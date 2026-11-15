@@ -8,6 +8,7 @@ from datetime import date, datetime
 import pandas as pd
 import pytest
 
+from misalud.annotations.store import set_tag
 from misalud.derived.rebuild import rebuild_derived
 from misalud.queries.common import NightScope, Period, UnknownMetricError, plain
 from misalud.queries.database import data_period, import_history, issue_summary, table_sizes
@@ -23,6 +24,7 @@ from misalud.queries.nights import (
     relate,
     rolling_median,
     sustained_low_by_weekday,
+    tag_comparison,
     worst_oxygen_nights,
 )
 from misalud.storage.database import Connection, open_database
@@ -132,9 +134,9 @@ def test_weekday_figures_use_the_day_the_night_began(db: Connection) -> None:
 def test_two_metrics_are_related_night_by_night(db: Connection) -> None:
     result = relate(db, "hours", "bedtime_hour")
     assert result["points"] == [
-        {"night_date": "2026-01-05", "x": 7.0, "y": 23.5},
-        {"night_date": "2026-01-06", "x": 6.5, "y": 24.5},
-        {"night_date": "2026-01-09", "x": 7.0, "y": 22.0},
+        {"night_date": "2026-01-05", "x": 7.0, "y": 23.5, "tagged": False},
+        {"night_date": "2026-01-06", "x": 6.5, "y": 24.5, "tagged": False},
+        {"night_date": "2026-01-09", "x": 7.0, "y": 22.0, "tagged": False},
     ]
     assert (result["nights"], result["enough_nights"]) == (3, False)
     assert result["spearman"] == pytest.approx(-0.8660254)
@@ -323,3 +325,64 @@ def test_nights_can_be_exported_as_csv(db: Connection) -> None:
     assert header[-1] == "has_valid_oxygen"
     assert lines[1].startswith("2026-01-05,A,2026-01-05T23:30:00,")
     assert nights_csv(db, Period(start=date(2027, 1, 1))) == ""
+
+
+def test_a_scope_can_keep_the_nights_with_or_without_a_tag(db: Connection) -> None:
+    set_tag(db, date(2026, 1, 5), 1, True)
+    set_tag(db, date(2026, 1, 9), 1, True)
+    set_tag(db, date(2026, 1, 6), 2, True)
+    with_alcohol = NightScope(tag_id=1)
+    assert [night["session_id"] for night in list_nights(db, with_alcohol)] == ["A", "C"]
+    without = NightScope(tag_id=1, tagged=False)
+    assert [night["session_id"] for night in list_nights(db, without)] == ["B"]
+    both = NightScope(start=date(2026, 1, 6), nights="weekend", tag_id=1)
+    assert both.condition("night_date") == (
+        "TRUE AND night_date >= ? AND is_weekend_night"
+        " AND night_date IN (SELECT day FROM annotation WHERE tag_id = ?)",
+        [date(2026, 1, 6), 1],
+    )
+    assert [night["session_id"] for night in list_nights(db, both)] == ["C"]
+    assert oxygen_summary(db, with_alcohol)["nights"] == 2
+    assert nights_by_month(db, ["hours"], with_alcohol)[0]["nights"] == 2
+    assert [n["session_id"] for n in worst_oxygen_nights(db, with_alcohol, limit=1)] == ["A"]
+
+
+def test_a_relation_can_flag_the_nights_of_a_tag(db: Connection) -> None:
+    set_tag(db, date(2026, 1, 6), 3, True)
+    result = relate(db, "hours", "bedtime_hour", highlight_tag_id=3)
+    assert [point["tagged"] for point in result["points"]] == [False, True, False]
+    assert result["spearman"] == pytest.approx(-0.8660254)
+
+
+def test_nights_with_a_tag_are_compared_with_nights_without_it(db: Connection) -> None:
+    set_tag(db, date(2026, 1, 5), 1, True)
+    result = tag_comparison(db, 1)
+    assert result["with"] == {
+        "nights": 1,
+        "nights_with_oxygen": 1,
+        "median_low_minutes": 10.0,
+        "average_low_minutes": 10.0,
+        "average_night_hr": 60.0,
+        "median_hrv_ms": 40.0,
+        "enough_nights": False,
+    }
+    without = result["without"]
+    assert (without["nights"], without["nights_with_oxygen"]) == (2, 1)
+    assert (without["median_low_minutes"], without["average_night_hr"]) == (0.0, 55.0)
+    assert without["median_hrv_ms"] is None
+    weekend = tag_comparison(db, 1, NightScope(nights="weekend", tag_id=2))
+    assert (weekend["with"]["nights"], weekend["without"]["nights"]) == (0, 1)
+    assert tag_comparison(db, 1, MIDDLE)["without"]["nights"] == 1
+
+
+def test_a_group_of_ten_nights_is_enough_to_compare(db: Connection) -> None:
+    frame = pd.DataFrame(
+        {
+            "night_date": pd.date_range("2026-02-01", periods=10).date,
+            "night_hr_avg": [60.0] * 10,
+        }
+    )
+    db.register("extra", frame)
+    db.execute("INSERT INTO night BY NAME SELECT * FROM extra")
+    result = tag_comparison(db, 1)
+    assert (result["without"]["nights"], result["without"]["enough_nights"]) == (13, True)

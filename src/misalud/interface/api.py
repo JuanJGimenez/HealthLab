@@ -29,7 +29,7 @@ from misalud.queries import database as database_queries
 from misalud.queries import days as day_queries
 from misalud.queries import nights as night_queries
 from misalud.queries.common import NightKind, NightScope, Period, Record
-from misalud.queries.night_detail import TRACKS, night_detail
+from misalud.queries.night_detail import TRACKS, night_detail, night_differences
 from misalud.storage.backup import list_backups, restore_backup
 from misalud.storage.database import Connection, open_database
 
@@ -97,7 +97,14 @@ class Api:
         ensure_derived(connection)
         return connection
 
-    def _scope(self, connection: Connection, period: str, nights: str) -> NightScope:
+    def _scope(
+        self,
+        connection: Connection,
+        period: str,
+        nights: str,
+        tag: int | None = None,
+        tagged: bool = True,
+    ) -> NightScope:
         """Turn the filter bar's choices into the nights to query."""
         if nights not in NIGHT_KINDS:
             msg = f"unknown kind of night: {nights}"
@@ -107,7 +114,7 @@ class Api:
             last = database_queries.data_period(connection)["last_night"]
             if last is not None:
                 start = date.fromisoformat(last) - timedelta(days=RANGE_DAYS[period] - 1)
-        return NightScope(start=start, nights=cast(NightKind, nights))
+        return NightScope(start=start, nights=cast(NightKind, nights), tag_id=tag, tagged=tagged)
 
     def _discard_import(self) -> None:
         """Forget a prepared import and remove its scratch folder."""
@@ -122,6 +129,7 @@ class Api:
         settings = load_settings(self._paths.data_dir)
         with self._open() as connection:
             available = database_queries.data_period(connection)
+            tags = annotation_store.list_tags(connection)
         return {
             "version": misalud.__version__,
             "language": settings.language,
@@ -130,6 +138,7 @@ class Api:
             "texts": load_texts(settings.language),
             "available": available,
             "night_metrics": list(night_queries.NIGHT_METRICS),
+            "tags": tags,
             "tracks": list(TRACKS),
             "shown_tracks": list(settings.tracks),
             "sustained_low_min": THRESHOLDS.sustained_low_min,
@@ -182,6 +191,68 @@ class Api:
             }
 
     @_safely
+    def compare_nights(self, first: str, second: str) -> Record:
+        """Return two nights with their tracks, annotations and differences."""
+        days = [date.fromisoformat(first), date.fromisoformat(second)]
+        with self._open() as connection:
+            details = [night_detail(connection, day) for day in days]
+            missing = [
+                day.isoformat() for day, detail in zip(days, details, strict=True) if not detail
+            ]
+            if missing:
+                return {"found": False, "missing": missing}
+            sides = [
+                {**detail, "annotations": annotation_store.day_annotations(connection, day)}
+                for day, detail in zip(days, details, strict=True)
+                if detail
+            ]
+            return {
+                "found": True,
+                "a": sides[0],
+                "b": sides[1],
+                "differences": night_differences(sides[0]["night"], sides[1]["night"]),
+                "tags": annotation_store.list_tags(connection, include_inactive=True),
+            }
+
+    @_safely
+    def day(self, day: str) -> Record:
+        """Return what is noted on a date, to annotate it from the calendar."""
+        when = date.fromisoformat(day)
+        with self._open() as connection:
+            return {
+                "has_night": night_detail(connection, when) is not None,
+                "tags": annotation_store.list_tags(connection),
+                "annotations": annotation_store.day_annotations(connection, when),
+            }
+
+    @_safely
+    def tags(self) -> Record:
+        """Return every tag, including the ones switched off, to manage them."""
+        with self._open() as connection:
+            return {"tags": annotation_store.list_tags(connection, include_inactive=True)}
+
+    @_safely
+    def add_tag(self, name: str) -> Record:
+        """Create a tag and return the whole list."""
+        with self._open() as connection:
+            annotation_store.add_tag(connection, name)
+            return {"tags": annotation_store.list_tags(connection, include_inactive=True)}
+
+    @_safely
+    def rename_tag(self, tag_id: int, name: str) -> Record:
+        """Rename a tag and return the whole list."""
+        with self._open() as connection:
+            annotation_store.rename_tag(connection, tag_id, name)
+            return {"tags": annotation_store.list_tags(connection, include_inactive=True)}
+
+    @_safely
+    def set_tag_active(self, tag_id: int, active: bool) -> Record:
+        """Switch a tag off or on and return the whole list."""
+        with self._open() as connection:
+            annotation_store.set_tag_active(connection, tag_id, active)
+            return {"tags": annotation_store.list_tags(connection, include_inactive=True)}
+
+    @_safely
     def set_tag(self, day: str, tag_id: int, present: bool) -> Record:
         """Mark or unmark a date with a tag and return what is noted on it."""
         when = date.fromisoformat(day)
@@ -198,10 +269,12 @@ class Api:
             return {"annotations": annotation_store.day_annotations(connection, when)}
 
     @_safely
-    def dashboard(self, period: str, nights: str) -> Record:
-        """Return the figures of every view for the chosen period and kind of night."""
+    def dashboard(
+        self, period: str, nights: str, tag: int | None = None, tagged: bool = True
+    ) -> Record:
+        """Return the figures of every view for the chosen period, kind of night and tag."""
         with self._open() as connection:
-            scope = self._scope(connection, period, nights)
+            scope = self._scope(connection, period, nights, tag, tagged)
             days = Period(start=scope.start)
             return {
                 "overview": night_queries.overview(connection, scope),
@@ -224,29 +297,50 @@ class Api:
             }
 
     @_safely
-    def worst_nights(self, period: str, nights: str, order_by: str) -> Record:
+    def worst_nights(
+        self, period: str, nights: str, order_by: str, tag: int | None = None, tagged: bool = True
+    ) -> Record:
         """Return the hardest nights for oxygen, ranked by the chosen measure."""
         with self._open() as connection:
-            scope = self._scope(connection, period, nights)
+            scope = self._scope(connection, period, nights, tag, tagged)
             return {
                 "nights": night_queries.worst_oxygen_nights(connection, scope, order_by=order_by)
             }
 
     @_safely
-    def relate(self, period: str, nights: str, x: str, y: str) -> Record:
-        """Pair two metrics night by night, with their rank correlation."""
+    def relate(
+        self,
+        period: str,
+        nights: str,
+        x: str,
+        y: str,
+        tag: int | None = None,
+        tagged: bool = True,
+        highlight: int | None = None,
+    ) -> Record:
+        """Pair two metrics night by night, flagging the nights of a highlighted tag."""
         with self._open() as connection:
-            scope = self._scope(connection, period, nights)
-            return night_queries.relate(connection, x, y, scope)
+            scope = self._scope(connection, period, nights, tag, tagged)
+            return night_queries.relate(connection, x, y, scope, highlight)
 
     @_safely
-    def export_csv(self, period: str, nights: str) -> Record:
+    def tag_comparison(self, period: str, nights: str, tag: int) -> Record:
+        """Compare the nights with a tag and without it, for the chosen period."""
+        with self._open() as connection:
+            scope = self._scope(connection, period, nights)
+            return night_queries.tag_comparison(connection, tag, scope)
+
+    @_safely
+    def export_csv(
+        self, period: str, nights: str, tag: int | None = None, tagged: bool = True
+    ) -> Record:
         """Save the nights of the current filter as a CSV file the user chooses."""
         target = self._dialogs.choose_save("misalud_noches.csv")
         if target is None:
             return {"saved": False}
         with self._open() as connection:
-            text = night_queries.nights_csv(connection, self._scope(connection, period, nights))
+            scope = self._scope(connection, period, nights, tag, tagged)
+            text = night_queries.nights_csv(connection, scope)
         target.write_text(text, encoding="utf-8-sig", newline="")
         return {"saved": True, "file_name": target.name}
 

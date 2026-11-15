@@ -8,7 +8,14 @@ from datetime import date
 import pytest
 
 from misalud.derived.rebuild import rebuild_derived
-from misalud.queries.night_detail import DEFAULT_TRACKS, TRACKS, low_spans, night_detail
+from misalud.queries.night_detail import (
+    COMPARED_METRICS,
+    DEFAULT_TRACKS,
+    TRACKS,
+    low_spans,
+    night_detail,
+    night_differences,
+)
 from misalud.storage.database import Connection
 from tests.support.sample_db import at, build_sample, insert
 
@@ -135,3 +142,20 @@ def test_consecutive_low_intervals_are_joined_into_stretches(db: Connection) -> 
         {"from": "01:03", "to": "01:04"},
     ]
     assert low_spans([]) == []
+
+
+def test_two_nights_are_compared_figure_by_figure(db: Connection) -> None:
+    first = night_detail(db, date(2026, 1, 5))
+    second = night_detail(db, date(2026, 1, 9))
+    short = night_detail(db, date(2026, 1, 6))
+    assert first is not None and second is not None and short is not None
+    differences = night_differences(first["night"], second["night"])
+    assert list(differences) == list(COMPARED_METRICS)
+    assert (differences["low_minutes"], differences["spo2_min"]) == (-10, 9)
+    assert differences["night_hr_avg"] == -5
+    assert differences["score"] == 0
+    # Night C has no stages, variability or snoring; night B has a short oxygen recording.
+    assert (differences["asleep_hours"], differences["hrv_rmssd_ms"]) == (None, None)
+    assert differences["snoring_min"] is None
+    against_short = night_differences(first["night"], short["night"])
+    assert (against_short["low_minutes"], against_short["spo2_min"]) == (None, None)

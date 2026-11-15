@@ -301,3 +301,73 @@ def test_the_shown_tracks_are_remembered(api: Api) -> None:
     assert chosen == {"ok": True, "shown_tracks": ["oxygen", "movement"]}
     assert api.bootstrap()["shown_tracks"] == ["oxygen", "movement"]
     assert api.set_tracks(["aura"])["error"] == "ValueError: unknown tracks: aura"
+
+
+def test_the_tag_filter_reaches_every_view(api: Api, dialogs: FakeDialogs, tmp_path: Path) -> None:
+    do_import(api, dialogs, tmp_path, 6)
+    api.set_tag("2026-01-02", 1, True)
+    api.set_tag("2026-01-04", 1, True)
+    assert len(api.bootstrap()["tags"]) == 8
+    tagged = api.dashboard("all", "all", 1, True)
+    assert [night["night_date"] for night in tagged["nights"]] == ["2026-01-02", "2026-01-04"]
+    assert tagged["overview"]["nights"] == 2
+    assert api.dashboard("all", "all", 1, False)["overview"]["nights"] == 3
+    assert len(api.worst_nights("all", "all", "low_minutes", 1, True)["nights"]) == 2
+    related = api.relate("all", "all", "hours", "low_minutes", None, True, 1)
+    assert [point["tagged"] for point in related["points"]] == [False, True, False, True, False]
+    assert api.relate("all", "all", "hours", "low_minutes", 1, False)["nights"] == 3
+    dialogs.save = tmp_path / "tagged.csv"
+    api.export_csv("all", "all", 1, True)
+    assert len(dialogs.save.read_text(encoding="utf-8-sig").splitlines()) == 3
+    comparison = api.tag_comparison("all", "all", 1)
+    assert (comparison["ok"], comparison["with"]["nights"], comparison["without"]["nights"]) == (
+        True,
+        2,
+        3,
+    )
+    assert comparison["with"]["enough_nights"] is False
+
+
+def test_two_nights_are_compared_through_the_bridge(
+    api: Api, dialogs: FakeDialogs, tmp_path: Path
+) -> None:
+    do_import(api, dialogs, tmp_path, 6)
+    api.set_tag("2026-01-03", 2, True)
+    compared = api.compare_nights("2026-01-02", "2026-01-03")
+    assert (compared["ok"], compared["found"]) == (True, True)
+    assert compared["a"]["night"]["night_date"] == "2026-01-02"
+    assert compared["b"]["annotations"] == {"tags": [2], "note": None}
+    assert len(compared["a"]["tracks"]["pulse"]) > 0
+    assert set(compared["differences"]) >= {"low_minutes", "night_hr_avg"}
+    assert len(compared["tags"]) == 8
+    assert api.compare_nights("2026-01-02", "2030-01-01") == {
+        "ok": True,
+        "found": False,
+        "missing": ["2030-01-01"],
+    }
+    assert api.compare_nights("2026-01-02", "never")["ok"] is False
+
+
+def test_any_date_can_be_annotated_from_the_calendar(
+    api: Api, dialogs: FakeDialogs, tmp_path: Path
+) -> None:
+    do_import(api, dialogs, tmp_path, 4)
+    with_night = api.day("2026-01-02")
+    assert (with_night["ok"], with_night["has_night"], len(with_night["tags"])) == (True, True, 8)
+    api.set_tag("2025-12-20", 6, True)
+    earlier = api.day("2025-12-20")
+    assert (earlier["has_night"], earlier["annotations"]["tags"]) == (False, [6])
+
+
+def test_tags_are_managed_through_the_bridge(api: Api) -> None:
+    assert len(api.tags()["tags"]) == 8
+    added = api.add_tag("Mate")
+    assert added["tags"][-1]["name"] == "Mate"
+    new_id = added["tags"][-1]["tag_id"]
+    assert api.rename_tag(new_id, "Mate de noche")["tags"][-1]["name"] == "Mate de noche"
+    off = api.set_tag_active(new_id, False)
+    assert off["tags"][-1]["is_active"] is False
+    assert len(api.bootstrap()["tags"]) == 8
+    assert api.add_tag("alcohol")["error"].startswith("AnnotationError: there is already")
+    assert api.rename_tag(99, "x")["ok"] is False
+    assert api.set_tag_active(99, True)["ok"] is False

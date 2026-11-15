@@ -178,3 +178,41 @@ def night_detail(connection: Connection, night_date: date) -> dict[str, Any] | N
         "low_spans": low_spans(tracks["oxygen"]),
         **neighbours,
     }
+
+
+COMPARED_METRICS: Final = (
+    "asleep_hours",
+    "score",
+    "low_minutes",
+    "spo2_min",
+    "night_hr_avg",
+    "hrv_rmssd_ms",
+    "snoring_min",
+    "skin_temp_vs_baseline_c",
+    "respiratory_rate_avg",
+)
+"""Figures shown side by side when two nights are compared."""
+
+_OXYGEN_FIGURES: Final = frozenset({"low_minutes", "spo2_min"})
+
+
+def night_differences(first: Record, second: Record) -> Record:
+    """Return, for each compared figure, the second night minus the first.
+
+    Args:
+        first: The ``night`` record of night A, as ``night_detail`` returns it.
+        second: The same for night B.
+
+    Returns:
+        One entry per name in ``COMPARED_METRICS``; ``None`` when either night
+        lacks the figure, or lacks a valid oxygen recording for an oxygen figure.
+    """
+    differences: Record = {}
+    for metric in COMPARED_METRICS:
+        values = [first[metric], second[metric]]
+        valid = metric not in _OXYGEN_FIGURES or (
+            first["has_valid_oxygen"] and second["has_valid_oxygen"]
+        )
+        missing = any(value is None for value in values)
+        differences[metric] = None if missing or not valid else values[1] - values[0]
+    return differences

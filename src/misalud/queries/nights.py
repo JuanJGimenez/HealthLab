@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import io
 from collections.abc import Sequence
+from dataclasses import replace
 from types import MappingProxyType
 from typing import Final
 
@@ -18,6 +19,7 @@ import pandas as pd
 from misalud.config import THRESHOLDS
 from misalud.queries.common import (
     ALL_TIME,
+    NightScope,
     Period,
     Record,
     check_metrics,
@@ -309,7 +311,13 @@ def nights_by_weekday(
     )
 
 
-def relate(connection: Connection, x: str, y: str, period: Period = ALL_TIME) -> Record:
+def relate(
+    connection: Connection,
+    x: str,
+    y: str,
+    period: Period = ALL_TIME,
+    highlight_tag_id: int | None = None,
+) -> Record:
     """Pair two metrics night by night and measure how they move together.
 
     Args:
@@ -317,10 +325,12 @@ def relate(connection: Connection, x: str, y: str, period: Period = ALL_TIME) ->
         x: Metric on the horizontal axis.
         y: Metric on the vertical axis.
         period: Dates to include.
+        highlight_tag_id: A tag whose nights are flagged in the result, to draw
+            them in another colour.
 
     Returns:
         ``points``: one record per night that has both values, with
-        ``night_date``, ``x`` and ``y``. ``nights``: how many. ``spearman``:
+        ``night_date``, ``x``, ``y`` and ``tagged``. ``nights``: how many. ``spearman``:
         Spearman's rank correlation, or ``None`` with fewer than three nights or
         when a metric never changes. ``enough_nights``: false below ten nights,
         when the correlation is not reliable.
@@ -332,13 +342,15 @@ def relate(connection: Connection, x: str, y: str, period: Period = ALL_TIME) ->
     condition, parameters = period.condition("night_date")
     points = records(
         connection,
-        f"""SELECT night_date, x, y
-        FROM (SELECT night_date, {_value(x)} AS x, {_value(y)} AS y FROM night WHERE {condition})
+        f"""SELECT night_date, x, y, tagged
+        FROM (SELECT night_date, {_value(x)} AS x, {_value(y)} AS y,
+                night_date IN (SELECT day FROM annotation WHERE tag_id = ?) AS tagged
+            FROM night WHERE {condition})
         WHERE x IS NOT NULL AND y IS NOT NULL ORDER BY night_date""",
-        parameters,
+        [highlight_tag_id, *parameters],
     )
     spearman = None
-    frame = pd.DataFrame(points, columns=["night_date", "x", "y"])
+    frame = pd.DataFrame(points, columns=["night_date", "x", "y", "tagged"])
     if (
         len(frame) >= MIN_NIGHTS_TO_CORRELATE
         and frame["x"].nunique() > 1
@@ -352,4 +364,46 @@ def relate(connection: Connection, x: str, y: str, period: Period = ALL_TIME) ->
         "nights": len(points),
         "spearman": spearman,
         "enough_nights": len(points) >= THRESHOLDS.min_nights_per_group,
+    }
+
+
+def _group_figures(connection: Connection, scope: NightScope) -> Record:
+    """Return the figures of one side of a with-and-without comparison."""
+    condition, parameters = scope.condition("night_date")
+    figures = records(
+        connection,
+        f"""SELECT count(*) AS nights,
+            count(*) FILTER ({VALID_OXYGEN}) AS nights_with_oxygen,
+            median(low_minutes) FILTER ({VALID_OXYGEN}) AS median_low_minutes,
+            avg(low_minutes) FILTER ({VALID_OXYGEN}) AS average_low_minutes,
+            avg(night_hr_avg) AS average_night_hr,
+            median(hrv_rmssd_ms) AS median_hrv_ms
+        FROM night WHERE {condition}""",
+        parameters,
+    )[0]
+    figures["enough_nights"] = figures["nights"] >= THRESHOLDS.min_nights_per_group
+    return figures
+
+
+def tag_comparison(connection: Connection, tag_id: int, period: Period = ALL_TIME) -> Record:
+    """Compare the nights whose date carries a tag with the nights whose date does not.
+
+    The number of nights of each group is always part of the answer, and
+    ``enough_nights`` is false for a group of fewer than ten: a difference seen
+    on a handful of nights says little.
+
+    Args:
+        connection: An open connection.
+        tag_id: The tag that splits the nights.
+        period: Dates and kind of night to include. A tag filter in it is replaced.
+
+    Returns:
+        ``with`` and ``without``: for each group, ``nights``,
+        ``nights_with_oxygen``, ``median_low_minutes``, ``average_low_minutes``,
+        ``average_night_hr``, ``median_hrv_ms`` and ``enough_nights``.
+    """
+    base = period if isinstance(period, NightScope) else NightScope(period.start, period.end)
+    return {
+        "with": _group_figures(connection, replace(base, tag_id=tag_id, tagged=True)),
+        "without": _group_figures(connection, replace(base, tag_id=tag_id, tagged=False)),
     }
