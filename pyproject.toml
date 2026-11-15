@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "misalud"
-version = "0.11.0"
+version = "0.12.0"
 description = "Local desktop app that accumulates and analyses Samsung Health exports."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -19,6 +19,7 @@ misalud = "misalud.interface.window:main"
 
 [project.optional-dependencies]
 ui = ["pywebview>=6.0"]
+build = ["pyinstaller>=6.0"]
 dev = [
     "mypy>=1.10",
     "pandas-stubs>=2.2",
@@ -61,7 +62,7 @@ convention = "google"
 [tool.mypy]
 strict = true
 python_version = "3.12"
-files = ["src", "tests"]
+files = ["src", "tests", "release"]
 
 [[tool.mypy.overrides]]
 module = ["webview", "playwright.*", "reportlab.*"]

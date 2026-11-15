@@ -229,6 +229,7 @@ def test_the_database_panel_shows_state_history_and_backups(
     do_import(api, dialogs, tmp_path, 6)
     panel = api.database_panel()
     assert panel["folder"] == str(tmp_path / "app" / "data")
+    assert panel["version"] == misalud.__version__
     assert panel["size_bytes"] > 0
     assert [row["file_name"] for row in panel["history"]] == [
         "samsunghealth_6.zip",

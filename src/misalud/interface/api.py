@@ -554,6 +554,7 @@ class Api:
         database = self._paths.database
         return {
             **panel,
+            "version": misalud.__version__,
             "folder": str(self._paths.data_dir),
             "size_bytes": database.stat().st_size,
             "last_import": history[0]["imported_at"] if history else None,

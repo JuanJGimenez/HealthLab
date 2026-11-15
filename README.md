@@ -8,15 +8,22 @@ Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica
 
 ## Estado
 
-Versión 0.11.0 (etapas 1 a 8). Importa una exportación con vista previa, fusiona sin perder datos,
-muestra seis vistas, el detalle de cada noche con ocho pistas y la comparación de dos noches, y
-permite etiquetar fechas y filtrar por etiqueta. Tiene además la pantalla de un día y el día
-típico por hora, y genera el informe para el médico en PDF, con bloques opcionales. En español
-o en inglés. Falta el empaquetado para Windows y el manual de uso.
+Versión 0.12.0 (etapas 1 a 9: el plan completo). Importa una exportación con vista previa, fusiona
+sin perder datos, muestra seis vistas, el detalle de cada noche con ocho pistas y la comparación de
+dos noches, y permite etiquetar fechas y filtrar por etiqueta. Tiene además la pantalla de un día
+y el día típico por hora, y genera el informe para el médico en PDF, con bloques opcionales. En
+español o en inglés. Se entrega como una carpeta portátil para Windows.
 
-## Abrir la app
+Pendiente: armar la carpeta en Windows y abrir la ventana por primera vez. Hasta acá se armó y
+se verificó en Linux. Cuando esa prueba esté hecha, la versión pasa a 1.0.0.
 
-Hasta que exista la carpeta portátil (etapa 9) hace falta tener Python 3.12 o superior:
+## Usar la app
+
+- Cómo se usa: [`docs/manual.md`](docs/manual.md).
+- Cómo se genera `MiSalud.exe`: [`docs/build_windows.md`](docs/build_windows.md). En resumen,
+  doble clic en `release\build_windows.bat`.
+
+Para abrirla desde el código, sin empaquetar:
 
 ```
 pip install ".[ui]"
@@ -61,7 +68,8 @@ pytest
 src/misalud/      código, organizado por capas (ver docs/architecture.md)
 tests/            pruebas automáticas
 tests/support/    exportación sintética con el formato de Samsung Health
-docs/             arquitectura, diccionario de datos, reglas de fusión y decisiones
+release/          armado de la carpeta para Windows (ver docs/build_windows.md)
+docs/             manual de uso, arquitectura, diccionario de datos, reglas de fusión y decisiones
 data/             base, respaldos y zips originales; fuera del control de versiones
 ```
 

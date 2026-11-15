@@ -170,6 +170,7 @@
   "database.until": "Datos hasta",
   "database.nights": "Noches",
   "database.size": "Tamaño de la base",
+  "database.version": "Versión de MiSalud: {version}",
   "database.open_folder": "Abrir la carpeta",
   "database.history": "Historial de importaciones",
   "database.imported": "Importado",

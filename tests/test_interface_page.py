@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 
+import misalud
 from misalud.config import Paths
 from misalud.interface.api import Api
 from tests.support.fake_dialogs import FakeDialogs
@@ -212,6 +213,7 @@ def test_from_an_empty_app_to_a_dashboard_in_two_languages(
     page.click("#btn-database")
     page.wait_for_selector("#overlay:not([hidden])")
     assert "samsunghealth_test.zip" in page.inner_text("#dialog-body")
+    assert page.inner_text("#app-version") == f"Versión de MiSalud: {misalud.__version__}"
     page.click("#dialog-close")
 
     # Changing the language rewrites every text and is remembered.

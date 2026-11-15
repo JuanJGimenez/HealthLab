@@ -974,6 +974,7 @@ async function showDatabase() {
     fact(t('database.last_import'), fmoment(panel.last_import)), fact(t('database.until'), fdate(panel.available.last_day)),
     fact(t('database.nights'), fmt(panel.available.nights, 0)), fact(t('database.size'), fsize(panel.size_bytes))])];
   body.push(el('p', {class: 'path', text: panel.folder}));
+  body.push(el('p', {class: 'stat', id: 'app-version', text: t('database.version', {version: panel.version})}));
   const done = el('span', {class: 'stat', 'aria-live': 'polite'});
   body.push(el('div', {class: 'row'}, [
     el('button', {class: 'btn', type: 'button', text: t('database.open_folder'), onclick: () => call('open_data_folder')}),

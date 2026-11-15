@@ -170,6 +170,7 @@
   "database.until": "Data until",
   "database.nights": "Nights",
   "database.size": "Database size",
+  "database.version": "MiSalud version: {version}",
   "database.open_folder": "Open the folder",
   "database.history": "Import history",
   "database.imported": "Imported",

@@ -3,6 +3,28 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [0.12.0] - 2026-11-15
+
+Etapa 9 del plan: empaquetado para Windows y manual de uso. Cierra el plan.
+
+### Agregado
+
+- Armado de la carpeta portátil: `release\build_windows.bat` prepara el entorno, arma
+  `dist\MiSalud` con PyInstaller y verifica el resultado. Con `--install CARPETA` deja el programa
+  en la carpeta de uso sin tocar `data`.
+- Autoverificación: `MiSalud.exe --check` revisa, sin abrir la ventana, los archivos de la
+  pantalla, los textos, la base y el informe, y escribe el resultado en `data\logs\check.txt`.
+  Con una exportación después de `--check`, prueba una importación entera en una carpeta temporal.
+- Si la app no puede abrir, el motivo queda en `data\logs\error.log` y se muestra un mensaje.
+- El panel "Base de datos" muestra la versión de la app.
+- Ícono de la app.
+- Manual de uso (`docs/manual.md`) y guía de armado (`docs/build_windows.md`).
+
+### Pendiente de comprobar
+
+- El armado en Windows y la primera apertura de la ventana. La carpeta se armó y se verificó en
+  Linux, con una importación completa de una exportación real.
+
 ## [0.11.0] - 2026-11-15
 
 Etapa 8b del plan: bloques opcionales del informe. Cierra la etapa 8.

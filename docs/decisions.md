@@ -67,6 +67,11 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 59 | El resultado de cada electrocardiograma se imprime como el código del fabricante, sin traducirlo | Samsung no publica el significado de esos códigos y no se verificó; las dos filas que guarda por registro se muestran como una |
 | 60 | El bloque "Día y noche" imprime el cruce que esté elegido en la vista Relacionar | Es la forma más directa de "elegir en Relacionar"; el motor admite varios cruces si más adelante hiciera falta |
 | 61 | Las noches en detalle del informe muestran cuatro pistas: etapas, oxígeno, pulso y ronquido | Son las que se leen en papel; las ocho pistas quedan en la pantalla |
+| 62 | La versión queda en 0.12.0 y pasa a 1.0.0 cuando la ventana se haya abierto y probado en Windows | La carpeta se armó y se verificó en Linux; llamarla 1.0 antes de verla funcionar en Windows sería afirmar algo no comprobado |
+| 63 | El programa armado se verifica solo (`MiSalud.exe --check`) y el armado falla si esa verificación falla | Un empaquetado puede perder un archivo sin avisar; así el error aparece al armar y no al usar |
+| 64 | La instalación y la actualización se hacen con un comando que reemplaza solo el programa (`MiSalud.exe`, `_internal`, `Manual.md`) y nunca toca `data` | Evita el único error grave posible al actualizar a mano: pisar la carpeta de datos |
+| 65 | El ejecutable no se comprime (sin UPX) y no lleva firma | La compresión aumenta las falsas alarmas de los antivirus; la firma exige un certificado pago y el aviso de Windows aparece una sola vez |
+| 66 | Un error al abrir se guarda en `data/logs/error.log` y se muestra en un cuadro de mensaje | Un programa de escritorio no tiene consola: sin esto, un fallo al abrir no dejaría rastro |
 
 ## Notas
 
@@ -83,5 +88,6 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisiones 49 a 51.** Tomadas en la etapa 6b y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 52 a 54.** Tomadas en la etapa 7 y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 55 a 58.** Tomadas en la etapa 8a y aprobadas por el usuario el 15 de noviembre de 2026. Sobre la 56, el usuario preguntó por qué la ventana no guardaba el PDF: el componente de Edge sí puede, pero la librería de la ventana no ofrece una forma documentada de pedírselo; se mantuvo el PDF armado en Python.
-- **Decisiones 59 a 61.** Tomadas en la etapa 8b; pendientes de la confirmación del usuario.
+- **Decisiones 59 a 61.** Tomadas en la etapa 8b y aprobadas por el usuario el 15 de noviembre de 2026.
+- **Decisiones 62 a 66.** Tomadas en la etapa 9; pendientes de la confirmación del usuario.
 - **Esquema.** La etapa 4 agregó la tabla `exercise_custom_type` a la versión 1 del esquema, sin migración, porque todavía no existe ninguna base en uso. Desde la primera entrega que el usuario instale, todo cambio de esquema irá por migración.

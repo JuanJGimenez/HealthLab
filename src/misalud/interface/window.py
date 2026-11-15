@@ -1,7 +1,8 @@
 """Open the app window and connect it to the ``Api``.
 
 This is the only module that touches the windowing library. It holds no logic:
-it shows the page, and passes file dialogs to the operating system.
+it shows the page, and passes file dialogs to the operating system. What a
+start does is decided in ``startup``.
 """
 
 from __future__ import annotations
@@ -12,7 +13,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from misalud.config import APP_NAME, default_paths
+from misalud.config import APP_NAME, Paths, default_paths
+from misalud.interface import startup
 from misalud.interface.api import Api
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
@@ -59,12 +61,12 @@ class WindowDialogs:  # pragma: no cover - needs a real window; checked by hand 
             subprocess.Popen([opener, str(folder)])
 
 
-def main() -> None:  # pragma: no cover - needs a real window; checked by hand on Windows
-    """Open MiSalud."""
+def _open_window(paths: Paths) -> None:  # pragma: no cover - needs a real window
+    """Show the app window and return when the user closes it."""
     import webview
 
     dialogs = WindowDialogs()
-    api = Api(default_paths(), dialogs)
+    api = Api(paths, dialogs)
     window = webview.create_window(
         APP_NAME,
         url=str(WEB_DIR / "index.html"),
@@ -75,3 +77,23 @@ def main() -> None:  # pragma: no cover - needs a real window; checked by hand o
     )
     dialogs.attach(window)
     webview.start()
+
+
+def _show_error(message: str) -> None:  # pragma: no cover - needs a real desktop
+    """Tell the user the app could not start.
+
+    A packaged app has no console, so on Windows the message goes in a dialog
+    box. Elsewhere it is printed.
+    """
+    if sys.platform == "win32":
+        import ctypes
+
+        error_icon = 0x10
+        ctypes.windll.user32.MessageBoxW(None, message, APP_NAME, error_icon)
+    else:
+        print(message, file=sys.stderr)
+
+
+def main() -> None:  # pragma: no cover - needs a real window; checked by hand on Windows
+    """Open MiSalud, or run the self-check with ``--check``."""
+    sys.exit(startup.run(sys.argv[1:], default_paths(), _open_window, _show_error))

@@ -107,6 +107,8 @@ que las pistas: sumar un bloque no obliga a tocar los demás.
 | `i18n` y `locales/` | Los textos, un archivo por idioma (`es.json`, `en.json`) |
 | `settings` | Recordar el idioma y el tema en `data/settings.json` |
 | `window` | Abrir la ventana con pywebview y mostrar los selectores de archivo |
+| `startup` | Decidir qué hace un arranque: abrir la ventana o autoverificarse; si la ventana no abre, dejar el error en `data/logs/error.log` |
+| `selfcheck` | Revisar que una copia de la app esté completa, sin abrir la ventana |
 | `web/` | La página: `index.html`, `app.css`, `app.js` y la librería de gráficos en `vendor/` |
 
 Reglas de la interfaz:
@@ -149,8 +151,26 @@ data/
 `config.app_root()` resuelve la carpeta de la app: la variable `MISALUD_HOME` si está definida, la
 carpeta del ejecutable si la app está empaquetada, o la carpeta del proyecto si corre desde el código.
 
+## Empaquetado
+
+La carpeta `release/` convierte el proyecto en la carpeta portátil para Windows. No es una capa de
+la app: nada de `src/` la importa.
+
+| Archivo | Responsabilidad |
+|---|---|
+| `build_windows.bat` | Crear el entorno de armado y llamar a `build.py` |
+| `build.py` | Armar con PyInstaller, ejecutar la autoverificación del resultado e instalar sobre una carpeta en uso sin tocar `data` |
+| `misalud.spec` | Receta de PyInstaller: el código sale de `src/` y los archivos de la app se listan uno por uno |
+| `launcher.py` | Punto de entrada del ejecutable |
+
+El armado falla si el programa armado no pasa su autoverificación. `tests/test_release_build.py`
+prueba la instalación sobre una carpeta con datos. El procedimiento completo está en
+`build_windows.md`.
+
 ## Documentos relacionados
 
 - `data_dictionary.md`: tablas y columnas de la base.
 - `merge_rules.md`: los cuatro casos de la fusión.
 - `decisions.md`: registro de decisiones.
+- `manual.md`: manual de uso.
+- `build_windows.md`: cómo generar la carpeta para Windows.
