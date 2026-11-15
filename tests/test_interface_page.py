@@ -58,7 +58,9 @@ def test_from_an_empty_app_to_a_dashboard_in_two_languages(
 ) -> None:
     dialogs = FakeDialogs(export=export_archive, save=tmp_path / "nights.csv")
     api = Api(Paths(tmp_path / "app"), dialogs)
-    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    page = browser.new_page(
+        viewport={"width": 1280, "height": 900}, timezone_id="America/Argentina/Buenos_Aires"
+    )
     problems = open_page(page, api)
 
     # An empty app invites the user to import.
@@ -116,8 +118,57 @@ def test_from_an_empty_app_to_a_dashboard_in_two_languages(
     title = page.inner_text("#night-title")
     page.click("#night-next")
     page.wait_for_function(f"document.querySelector('#night-title').textContent !== {title!r}")
+    # Two nights can be compared, aligned by elapsed time or by the clock.
+    page.click("#night-compare")
+    page.wait_for_selector("#compare:not([hidden])")
+    page.wait_for_function("document.querySelectorAll('#cmp-table tbody tr').length === 11")
+    assert page.inner_text("#cmp-table thead th:last-child").startswith("Diferencia")
+    page.click("#cmp-align button[data-v=clock]")
+    page.wait_for_selector("#cmp-align button[data-v=clock][aria-pressed=true]")
+    page.fill("#cmp-b", "2025-06-01")
+    page.dispatch_event("#cmp-b", "change")
+    page.wait_for_function("document.querySelector('#cmp-message').textContent.includes('No hay')")
+    page.click("#compare-back")
+    assert page.is_visible("#night")
     page.click("#night-back")
     assert page.is_visible("#content")
+
+    # A click on the calendar annotates any day.
+    page.locator("#o4").scroll_into_view_if_needed()
+    cell = page.evaluate(
+        """() => {
+            const node = document.getElementById('o4');
+            const chart = echarts.getInstanceByDom(node);
+            const point = chart.convertToPixel({seriesIndex: 0}, '2026-01-03');
+            const box = node.getBoundingClientRect();
+            return [box.x + point[0], box.y + point[1]];
+        }"""
+    )
+    page.mouse.click(cell[0], cell[1])
+    page.wait_for_selector("#overlay:not([hidden])")
+    assert page.inner_text("#dialog-title").startswith("Anotar el")
+    assert api.set_tag("2026-01-03", 5, True)["ok"]
+    assert "3" in page.inner_text("#dialog-title").split()[2]
+    assert page.locator("#dialog-body .chip").count() == 8
+    page.click("#dialog-close")
+
+    # The user manages tags, and a tag filters every view.
+    page.click("#btn-tags")
+    page.wait_for_selector("#tag-new")
+    page.fill("#tag-new", "Mate")
+    page.click("#tag-add")
+    page.wait_for_function("document.querySelectorAll('#tag-list .tagrow').length === 9")
+    page.click("#dialog-close")
+    assert "Con Mate" in page.inner_text("#f-tag")
+    page.select_option("#f-tag", "1:with")
+    page.wait_for_function("document.querySelector('#kpis .kpi .v').textContent === '1'")
+    page.click("#tabs button[data-tab=relate]")
+    page.select_option("#cmp-tag", "1")
+    page.wait_for_selector("#tagcompare table")
+    assert "menos de 10 noches" in page.inner_text("#tagcompare")
+    page.select_option("#r-highlight", "1")
+    page.select_option("#f-tag", "")
+    page.wait_for_function("document.querySelector('#kpis .kpi .v').textContent === '5'")
 
     # The filters ask Python again.
     page.click("#tabs button[data-tab=data]")

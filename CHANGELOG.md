@@ -3,6 +3,26 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [0.8.0] - 2026-11-15
+
+Etapa 6b del plan: comparar dos noches y usar las etiquetas en las vistas. Cierra la etapa 6.
+
+### Agregado
+
+- Comparar dos noches: dos selectores de fecha, atajos a la noche anterior y al mismo día de la
+  semana anterior, cada señal con la noche A y debajo la B sobre el mismo eje, alineación por
+  horas desde que se durmió o por hora del reloj, y resumen lado a lado con la diferencia.
+- Filtro por etiqueta en las vistas de noches: con o sin una etiqueta.
+- Comparación con y sin una etiqueta: minutos bajo 90 %, pulso nocturno y variabilidad, con la
+  cantidad de noches de cada grupo y aviso cuando un grupo tiene menos de 10.
+- Color por etiqueta en la vista Relacionar.
+- Anotar cualquier día con un clic en el calendario, también sin noche registrada.
+- Administrar etiquetas: agregar, renombrar, desactivar y reactivar.
+
+### Corregido
+
+- Un valor redondeado a cero ya no se muestra como "-0".
+
 ## [0.7.0] - 2026-11-15
 
 Etapa 6a del plan: detalle de una noche y carga de etiquetas.

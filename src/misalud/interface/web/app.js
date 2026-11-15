@@ -13,7 +13,8 @@ const $$ = (selector, root) => Array.from((root || document).querySelectorAll(se
 const call = (name, ...args) => window.pywebview.api[name](...args);
 
 const state = {period: 'all', nights: 'all', tab: 'oxygen', x: 'night_hr_avg', y: 'low_minutes',
-  sort: ['night_date', -1], texts: {}, language: 'es', theme: 'system', boot: null, data: null, night: null};
+  sort: ['night_date', -1], texts: {}, language: 'es', theme: 'system', boot: null, data: null, night: null,
+  tag: null, tagged: true, highlight: null, compare: null, align: 'elapsed'};
 let T = null;                     // colour tokens read from the stylesheet
 const charts = {};
 
@@ -24,8 +25,11 @@ function t(key, values) {
   return text;
 }
 const locale = () => (state.language === 'en' ? 'en-US' : 'es-AR');
-const fmt = (value, digits = 1) => (value === null || value === undefined || Number.isNaN(value)) ? '–'
-  : Number(value).toLocaleString(locale(), {minimumFractionDigits: digits, maximumFractionDigits: digits});
+const fmt = (value, digits = 1) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return '–';
+  const rounded = Number(Number(value).toFixed(digits)) || 0;       // never show "-0"
+  return rounded.toLocaleString(locale(), {minimumFractionDigits: digits, maximumFractionDigits: digits});
+};
 const utc = iso => { const [y, m, d] = iso.slice(0, 10).split('-').map(Number); return Date.UTC(y, m - 1, d); };
 const fdate = iso => iso ? new Date(utc(iso)).toLocaleDateString(locale(), {day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC'}) : '–';
 const fmonth = iso => new Date(utc(iso)).toLocaleDateString(locale(), {month: 'short', year: '2-digit', timeZone: 'UTC'}).replace('.', '');
@@ -72,6 +76,8 @@ function chart(id) {
   return charts[id];
 }
 const isoDay = time => new Date(time).toISOString().slice(0, 10);
+// The calendar places its days at local midnight, unlike the other charts, which use UTC midnight.
+const localDay = time => { const d = new Date(time); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 function onNightClick(id, pick) {
   const c = chart(id);
   c.off('click');
@@ -215,12 +221,19 @@ function renderOxygen() {
       series: [{type: 'heatmap', coordinateSystem: 'calendar', data: nights.map(night => [night.night_date, night.low_minutes]),
         itemStyle: {borderWidth: 2, borderColor: T.bg, borderRadius: 2}}]
     }, true);
-    onNightClick('o4', params => params.value[0]);
+    const calendar = chart('o4');
+    calendar.off('click');
+    calendar.getZr().off('click');
+    calendar.getZr().on('click', event => {
+      const cell = calendar.convertFromPixel({seriesIndex: 0}, [event.offsetX, event.offsetY]);
+      const time = Array.isArray(cell) ? cell[0] : cell;
+      if (time) openDay(localDay(time));
+    });
   }
   loadWorst();
 }
 async function loadWorst() {
-  const answer = await call('worst_nights', state.period, state.nights, $('#worst-by').value);
+  const answer = await call('worst_nights', state.period, state.nights, $('#worst-by').value, state.tag, state.tagged);
   if (!answer.ok) return;
   buildTable($('#worst'), [
     [t('column.night'), night => fdate(night.night_date) + ' · ' + weekday(night.weekday), 'l'],
@@ -338,6 +351,28 @@ function renderActivity() {
   monthBars('a3', 'stress_avg', '', 0, t('activity.stress.label'));
 }
 
+/* ---------- tags in the filters ---------- */
+const tagById = id => state.boot.tags.find(tag => tag.tag_id === id) || {name: '?', builtin_key: null};
+function fillTagSelects() {
+  const filter = $('#f-tag');
+  filter.textContent = '';
+  filter.appendChild(el('option', {value: '', text: t('filter.tag.all')}));
+  state.boot.tags.forEach(tag => {
+    filter.appendChild(el('option', {value: tag.tag_id + ':with', text: t('filter.tag.with', {tag: tagName(tag)})}));
+    filter.appendChild(el('option', {value: tag.tag_id + ':without', text: t('filter.tag.without', {tag: tagName(tag)})}));
+  });
+  filter.value = state.tag === null ? '' : state.tag + (state.tagged ? ':with' : ':without');
+  if (filter.value === '') { state.tag = null; state.tagged = true; }
+  [['#r-highlight', 'relate.highlight.none', state.highlight], ['#cmp-tag', 'tagcompare.choose', null]].forEach(([selector, emptyText, chosen]) => {
+    const select = $(selector), before = select.value;
+    select.textContent = '';
+    select.appendChild(el('option', {value: '', text: t(emptyText)}));
+    state.boot.tags.forEach(tag => select.appendChild(el('option', {value: String(tag.tag_id), text: tagName(tag)})));
+    select.value = chosen === null ? before : String(chosen);
+  });
+  if ($('#r-highlight').value === '') state.highlight = null;
+}
+
 /* ---------- relate ---------- */
 function fillMetricSelects() {
   [['#rx', state.x], ['#ry', state.y]].forEach(([selector, chosen]) => {
@@ -348,7 +383,8 @@ function fillMetricSelects() {
   });
 }
 async function renderRelate() {
-  const answer = await call('relate', state.period, state.nights, state.x, state.y);
+  renderTagComparison();
+  const answer = await call('relate', state.period, state.nights, state.x, state.y, state.tag, state.tagged, state.highlight);
   if (!answer.ok) return;
   const xLabel = t('metric.' + state.x), yLabel = t('metric.' + state.y);
   if (!emptyChart('r1', answer.points.length)) chart('r1').setOption(Object.assign(baseOption(), {
@@ -357,9 +393,11 @@ async function renderRelate() {
       {c: T.c1, v: fmt(point.data[0], 1), l: xLabel}, {v: fmt(point.data[1], 1), l: yLabel}])}),
     xAxis: valueAxis({scale: true, name: xLabel, nameLocation: 'middle', nameGap: 26, nameTextStyle: {color: T.ts, fontSize: 12}}),
     yAxis: valueAxis({scale: true, name: yLabel, nameTextStyle: {color: T.ts, fontSize: 12, align: 'left'}}),
-    series: [{type: 'scatter', data: answer.points.map(point => [point.x, point.y, point.night_date]), symbolSize: 7,
-      itemStyle: {color: T.c1, opacity: .55, borderColor: T.bg, borderWidth: 1}}]
+    series: [[false, T.c1, t('relate.others')], [true, T.c2, state.highlight === null ? '' : tagName(tagById(state.highlight))]].map(([flag, color, name]) => ({
+      type: 'scatter', name, data: answer.points.filter(point => point.tagged === flag).map(point => [point.x, point.y, point.night_date]),
+      symbolSize: flag ? 9 : 7, itemStyle: {color, opacity: flag ? .9 : .55, borderColor: T.bg, borderWidth: 1}, z: flag ? 3 : 2}))
   }), true);
+  chart('r1').setOption({legend: Object.assign(baseOption().legend, {show: state.highlight !== null, icon: 'circle', itemHeight: 8, itemWidth: 8})});
   onNightClick('r1', params => params.data[2]);
   const stat = $('#rstat');
   stat.textContent = '';
@@ -372,6 +410,20 @@ async function renderRelate() {
     stat.appendChild(document.createTextNode(' · ' + t(strength) + ' · ' + t('relate.nights', {n: answer.nights}) +
       (answer.enough_nights ? '' : ' · ' + t('relate.few'))));
   }
+}
+
+async function renderTagComparison() {
+  const box = $('#tagcompare');
+  box.textContent = '';
+  const chosen = $('#cmp-tag').value;
+  if (!chosen) { box.appendChild(el('p', {class: 'stat', text: t('tagcompare.choose')})); return; }
+  const answer = await call('tag_comparison', state.period, state.nights, Number(chosen));
+  if (!answer.ok) return showError(answer.error);
+  const row = (label, key, digits) => [t(label), fmt(answer.with[key], digits), fmt(answer.without[key], digits)];
+  box.appendChild(simpleTable([[t('column.measure'), 'l'], [t('tagcompare.with')], [t('tagcompare.without')]], [
+    row('tagcompare.nights', 'nights', 0), row('tagcompare.median_low', 'median_low_minutes', 1), row('tagcompare.average_low', 'average_low_minutes', 1),
+    row('tagcompare.pulse', 'average_night_hr', 0), row('tagcompare.hrv', 'median_hrv_ms', 0)]));
+  if (!answer.with.enough_nights || !answer.without.enough_nights) box.appendChild(banner(t('tagcompare.few')));
 }
 
 /* ---------- data table ---------- */
@@ -405,41 +457,42 @@ const STAGE_LEVELS = {40003: 0, 40002: 1, 40004: 2, 40001: 3};       // deep, li
 const STAGE_TEXT = ['stage.deep', 'stage.light', 'stage.rem', 'stage.awake'];
 const clock = time => { const d = new Date(time); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
 const tagName = tag => (tag.builtin_key && tag.name === tag.builtin_key ? t('tag.' + tag.builtin_key) : tag.name);
-const steps = (spans, value) => { const data = []; spans.forEach(span => { data.push([span.from, value(span)]); data.push([span.to, value(span)]); }); return data; };
+const same = time => time;
+const steps = (spans, value, X) => { const data = []; spans.forEach(span => { data.push([X(span.from), value(span)]); data.push([X(span.to), value(span)]); }); return data; };
 
 /* Each track is one entry: how to turn its data into a series and how to label its axis. */
 const TRACK_VIEWS = {
   stages: {
-    series: spans => ({type: 'line', data: steps(spans, span => STAGE_LEVELS[span.code]), showSymbol: false, lineStyle: {width: 2, color: T.c1}, itemStyle: {color: T.c1}}),
+    series: (spans, night, X = same) => ({type: 'line', data: steps(spans, span => STAGE_LEVELS[span.code], X), showSymbol: false, lineStyle: {width: 2, color: T.c1}, itemStyle: {color: T.c1}}),
     axis: () => ({min: 0, max: 3, interval: 1, axisLabel: {color: T.ts, fontSize: 10, formatter: value => t(STAGE_TEXT[value] || '')}}),
     text: value => t(STAGE_TEXT[value] || '')},
   oxygen: {
-    series: spans => ({type: 'line', data: steps(spans, span => span.lowest), showSymbol: false, lineStyle: {width: 2, color: T.c1}, itemStyle: {color: T.c1},
+    series: (spans, night, X = same) => ({type: 'line', data: steps(spans, span => span.lowest, X), showSymbol: false, lineStyle: {width: 2, color: T.c1}, itemStyle: {color: T.c1},
       markLine: markLine(state.boot.low_spo2_pct, state.boot.low_spo2_pct + ' %')}),
     axis: spans => ({min: Math.min(80, ...spans.map(span => Math.floor(span.lowest / 5) * 5)), max: 100}),
     text: value => fmt(value, 0) + ' %'},
   pulse: {
-    series: points => ({type: 'line', data: points.map(point => [point.at, point.value]), showSymbol: false, lineStyle: {width: 1.5, color: T.c2}, itemStyle: {color: T.c2}}),
+    series: (points, night, X = same) => ({type: 'line', data: points.map(point => [X(point.at), point.value]), showSymbol: false, lineStyle: {width: 1.5, color: T.c2}, itemStyle: {color: T.c2}}),
     axis: () => ({scale: true}), text: value => fmt(value, 0) + ' ' + t('unit.bpm')},
   variability: {
-    series: points => ({type: 'scatter', data: points.map(point => [point.at, point.value]), symbolSize: 3, itemStyle: {color: T.c3, opacity: .6}}),
+    series: (points, night, X = same) => ({type: 'scatter', data: points.map(point => [X(point.at), point.value]), symbolSize: 3, itemStyle: {color: T.c3, opacity: .6}}),
     axis: () => ({scale: true}), text: value => fmt(value, 0) + ' ms'},
   snoring: {
-    series: spans => ({type: 'custom', data: spans.map(span => [span.from, span.to, span.seconds]), encode: {x: [0, 1]},
+    series: (spans, night, X = same) => ({type: 'custom', data: spans.map(span => [X(span.from), X(span.to), span.seconds]), encode: {x: [0, 1]},
       renderItem: (params, api) => {
         const from = api.coord([api.value(0), 0]), to = api.coord([api.value(1), 1]);
         return {type: 'rect', shape: {x: from[0], y: to[1], width: Math.max(to[0] - from[0], 2), height: from[1] - to[1]}, style: {fill: T.c3}};
       }}),
     axis: () => ({min: 0, max: 1, axisLabel: {show: false}, splitLine: {show: false}}), text: value => fmt(value, 0) + ' s'},
   breathing: {
-    series: points => ({type: 'line', data: points.map(point => [point.at, point.value]), showSymbol: false, lineStyle: {width: 1.5, color: T.c3}, itemStyle: {color: T.c3}}),
+    series: (points, night, X = same) => ({type: 'line', data: points.map(point => [X(point.at), point.value]), showSymbol: false, lineStyle: {width: 1.5, color: T.c3}, itemStyle: {color: T.c3}}),
     axis: () => ({scale: true}), text: value => fmt(value, 1)},
   skin_temperature: {
-    series: (points, night) => ({type: 'line', data: points.map(point => [point.at, point.value]), showSymbol: false, lineStyle: {width: 1.5, color: T.c2}, itemStyle: {color: T.c2},
+    series: (points, night, X = same) => ({type: 'line', data: points.map(point => [X(point.at), point.value]), showSymbol: false, lineStyle: {width: 1.5, color: T.c2}, itemStyle: {color: T.c2},
       markLine: night.skin_baseline_c === null ? undefined : markLine(night.skin_baseline_c, t('chart.usual'))}),
     axis: () => ({scale: true}), text: value => fmt(value, 1) + ' °C'},
   movement: {
-    series: points => ({type: 'bar', data: points.map(point => [point.at, point.value]), barWidth: 1, itemStyle: {color: T.tm}}),
+    series: (points, night, X = same) => ({type: 'bar', data: points.map(point => [X(point.at), point.value]), barWidth: 1, itemStyle: {color: T.tm}}),
     axis: () => ({min: 0}), text: value => fmt(value, 0)}
 };
 
@@ -536,6 +589,164 @@ function drawTracks() {
     option.series.push(series);
   });
   c.setOption(option, true);
+}
+
+/* ---------- compare two nights ---------- */
+const hoursText = hours => { const total = Math.round(hours * 60); return Math.floor(total / 60) + ':' + String(Math.abs(total % 60)).padStart(2, '0'); };
+const signed = (value, digits) => (value === null ? '–' : (value > 0 ? '+' : '') + fmt(value, digits));
+function tagList(side, tags) {
+  const names = side.annotations.tags.map(id => { const tag = tags.find(other => other.tag_id === id); return tag ? tagName(tag) : ''; });
+  return names.filter(Boolean).join(', ') || '–';
+}
+async function openCompare(first, second) {
+  const answer = await call('compare_nights', first, second);
+  if (!answer.ok) return showError(answer.error);
+  $('#night').hidden = true;
+  $('#content').hidden = true;
+  $('#compare').hidden = false;
+  $('#cmp-a').value = first;
+  $('#cmp-b').value = second;
+  [$('#cmp-a'), $('#cmp-b')].forEach(input => { input.min = state.boot.available.first_night; input.max = state.boot.available.last_night; });
+  if (!answer.found) {
+    $('#cmp-message').textContent = answer.missing.map(day => t('compare.missing', {date: fdate(day)})).join(' ');
+    return;
+  }
+  $('#cmp-message').textContent = '';
+  state.compare = answer;
+  renderCompare();
+}
+function renderCompare() {
+  const {a, b, differences, tags} = state.compare;
+  const digits = {asleep_hours: 1, score: 0, low_minutes: 1, spo2_min: 0, night_hr_avg: 0, hrv_rmssd_ms: 0, snoring_min: 0, skin_temp_vs_baseline_c: 1, respiratory_rate_avg: 1};
+  const value = (side, key) => ((key === 'low_minutes' || key === 'spo2_min') && !side.night.has_valid_oxygen ? t('night.no_oxygen') : fmt(side.night[key], digits[key]));
+  const rows = [[t('compare.date'), fdate(a.night.night_date) + ' · ' + weekday(a.night.weekday), fdate(b.night.night_date) + ' · ' + weekday(b.night.weekday), '']];
+  Object.keys(differences).forEach(key => rows.push([t('metric.' + key), value(a, key), value(b, key), signed(differences[key], digits[key])]));
+  rows.push([t('compare.tags'), tagList(a, tags), tagList(b, tags), '']);
+  buildTable($('#cmp-table'), [[t('column.measure'), row => row[0], 'l'], [t('compare.night_a'), row => row[1]], [t('compare.night_b'), row => row[2]],
+    [t('compare.difference'), row => row[3]]], rows);
+  $$('#cmp-align button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.v === state.align)));
+  const toggles = $('#compare-toggles');
+  toggles.textContent = '';
+  state.boot.tracks.forEach(name => {
+    const shown = state.boot.shown_tracks.includes(name);
+    toggles.appendChild(el('button', {class: 'chip', type: 'button', 'aria-pressed': String(shown), 'data-track': name, text: t('track.' + name), onclick: async () => {
+      const wanted = shown ? state.boot.shown_tracks.filter(other => other !== name) : state.boot.shown_tracks.concat(name);
+      const saved = await call('set_tracks', wanted);
+      if (!saved.ok) return showError(saved.error);
+      state.boot.shown_tracks = saved.shown_tracks;
+      renderCompare();
+    }}));
+  });
+  drawCompare();
+}
+function drawCompare() {
+  const sides = [['A', state.compare.a], ['B', state.compare.b]];
+  const names = state.boot.shown_tracks;
+  const node = $('#compare-chart');
+  const HEIGHT = 70, INNER = 10, GAP = 44, TOP = 30;
+  node.style.height = (TOP + names.length * (2 * HEIGHT + INNER + GAP) + 30) + 'px';
+  const c = chart('compare-chart');
+  c.resize();
+  c.clear();
+  if (!names.length) return;
+  const origin = night => Date.parse(state.align === 'elapsed' ? night.start_at : night.night_date + 'T12:00:00');
+  const scale = night => time => (Date.parse(time) - origin(night)) / 3600000;
+  const label = hours => (state.align === 'elapsed' ? hoursText(hours) : hoursText((((12 + hours) % 24) + 24) % 24));
+  const starts = sides.map(([, side]) => scale(side.night)(side.night.start_at));
+  const ends = sides.map(([, side]) => scale(side.night)(side.night.end_at));
+  const lanes = [];
+  names.forEach((name, index) => sides.forEach(([letter, side], row) => lanes.push({name, letter, side, top: TOP + index * (2 * HEIGHT + INNER + GAP) + row * (HEIGHT + INNER), first: row === 0})));
+  const option = {animation: false, textStyle: {fontFamily: 'inherit'}, grid: [], xAxis: [], yAxis: [], series: [], title: [],
+    axisPointer: {link: [{xAxisIndex: 'all'}], lineStyle: {color: T.tm, width: 1}},
+    tooltip: {trigger: 'axis', confine: true, backgroundColor: T.bg, borderColor: T.line, borderWidth: 1, padding: [8, 10], textStyle: {color: T.tp, fontSize: 12},
+      extraCssText: 'box-shadow:0 4px 16px rgba(0,0,0,.18);border-radius:8px;',
+      formatter: points => tip(label(points[0].axisValue), points.map(point => { const lane = lanes[point.seriesIndex]; return {c: point.color,
+        v: TRACK_VIEWS[lane.name].text(point.value[lane.name === 'snoring' ? 2 : 1]), l: point.seriesName}; }))},
+    dataZoom: [{type: 'inside', xAxisIndex: lanes.map((_, index) => index), filterMode: 'none'}]};
+  lanes.forEach((lane, index) => {
+    const data = lane.side.tracks[lane.name], view = TRACK_VIEWS[lane.name], X = scale(lane.side.night);
+    if (lane.first) option.title.push({text: t('track.' + lane.name), left: 4, top: lane.top - 24, textStyle: {color: T.ts, fontSize: 12, fontWeight: 600}});
+    option.title.push({text: lane.letter + (data.length ? '' : ' · ' + t('night.no_data')), left: 4, top: lane.top + HEIGHT / 2 - 8, textStyle: {color: T.tm, fontSize: 12, fontWeight: 600}});
+    option.grid.push({left: 84, right: 16, top: lane.top, height: HEIGHT});
+    option.xAxis.push(Object.assign(axisBase(), {type: 'value', gridIndex: index, min: Math.min(...starts), max: Math.max(...ends), splitLine: {show: false},
+      axisLabel: {color: T.ts, fontSize: 11, show: index === lanes.length - 1, formatter: label}}));
+    const both = sides.map(([, side]) => side.tracks[lane.name]);
+    const axis = view.axis(both[0].concat(both[1]));
+    const values = both[0].concat(both[1]).map(point => point.value).filter(value => typeof value === 'number');
+    if (axis.scale && values.length) Object.assign(axis, {scale: false, min: Math.floor(Math.min(...values)), max: Math.ceil(Math.max(...values))});
+    option.yAxis.push(Object.assign(axisBase(), {type: 'value', gridIndex: index, splitNumber: 2}, axis));
+    const series = Object.assign(view.series(data, lane.side.night, X), {name: t('track.' + lane.name) + ' · ' + lane.letter, xAxisIndex: index, yAxisIndex: index});
+    series.markArea = {silent: true, itemStyle: {color: T.c2, opacity: .13}, data: lane.side.low_spans.map(span => [{xAxis: X(span.from)}, {xAxis: X(span.to)}])};
+    option.series.push(series);
+  });
+  c.setOption(option, true);
+}
+function closeCompare() {
+  $('#compare').hidden = true;
+  state.compare = null;
+  if (state.night) { $('#night').hidden = false; renderNight(); } else closeNight();
+}
+const shiftDay = (day, amount) => new Date(utc(day) + amount * 86400000).toISOString().slice(0, 10);
+
+/* ---------- annotate any day, manage tags ---------- */
+async function openDay(day) {
+  const answer = await call('day', day);
+  if (!answer.ok) return showError(answer.error);
+  const chips = el('div', {class: 'chips'});
+  const draw = annotations => {
+    chips.textContent = '';
+    answer.tags.forEach(tag => {
+      const set = annotations.tags.includes(tag.tag_id);
+      chips.appendChild(el('button', {class: 'chip', type: 'button', 'aria-pressed': String(set), text: tagName(tag), onclick: async () => {
+        const saved = await call('set_tag', day, tag.tag_id, !set);
+        if (!saved.ok) return showError(saved.error);
+        draw(saved.annotations);
+      }}));
+    });
+  };
+  draw(answer.annotations);
+  const note = el('input', {type: 'text', maxlength: '300', placeholder: t('night.note.placeholder'), id: 'day-note'});
+  note.value = answer.annotations.note || '';
+  const done = el('span', {class: 'stat', 'aria-live': 'polite'});
+  const save = el('button', {class: 'btn', type: 'button', text: t('night.save'), onclick: async () => {
+    const saved = await call('set_note', day, note.value);
+    if (!saved.ok) return showError(saved.error);
+    done.textContent = t('night.saved');
+  }});
+  const body = [el('p', {class: 'cap', text: t('night.tags.caption')}), chips, el('div', {class: 'row'}, [note, save, done])];
+  if (!answer.has_night) body.push(el('p', {class: 'note', text: t('day.no_night')}));
+  const buttons = answer.has_night ? [el('button', {class: 'btn primary', type: 'button', id: 'day-open-night', text: t('day.open_night'), onclick: () => { closeDialog(); openNight(day); }})] : [];
+  openDialog(t('day.title', {date: fdate(day)}), body, buttons);
+}
+async function showTags() {
+  const answer = await call('tags');
+  if (!answer.ok) return showError(answer.error);
+  const list = el('div', {id: 'tag-list'});
+  const apply = async result => {
+    if (!result.ok) return showError(result.error);
+    draw(result.tags);
+    const boot = await call('bootstrap');
+    if (boot.ok) { state.boot.tags = boot.tags; fillTagSelects(); }
+  };
+  const draw = tags => {
+    list.textContent = '';
+    tags.forEach(tag => {
+      const name = el('input', {type: 'text', maxlength: '40'});
+      name.value = tagName(tag);
+      list.appendChild(el('div', {class: 'tagrow'}, [name,
+        el('button', {class: 'btn', type: 'button', text: t('tags.rename'), onclick: async () => apply(await call('rename_tag', tag.tag_id, name.value))}),
+        el('button', {class: 'chip', type: 'button', 'aria-pressed': String(tag.is_active), text: t(tag.is_active ? 'tags.on' : 'tags.off'),
+          onclick: async () => apply(await call('set_tag_active', tag.tag_id, !tag.is_active))})]));
+    });
+  };
+  draw(answer.tags);
+  const fresh = el('input', {type: 'text', maxlength: '40', placeholder: t('tags.new'), id: 'tag-new'});
+  const add = el('button', {class: 'btn primary', type: 'button', id: 'tag-add', text: t('tags.add'), onclick: async () => {
+    const result = await call('add_tag', fresh.value);
+    if (result.ok) fresh.value = '';
+    apply(result);
+  }});
+  openDialog(t('tags.title'), [el('p', {class: 'cap', text: t('tags.caption')}), list, el('div', {class: 'tagrow'}, [fresh, add])]);
 }
 
 /* ---------- dialogs ---------- */
@@ -644,7 +855,7 @@ async function showDatabase() {
   openDialog(t('action.database'), body);
 }
 async function exportCsv(target) {
-  const answer = await call('export_csv', state.period, state.nights);
+  const answer = await call('export_csv', state.period, state.nights, state.tag, state.tagged);
   if (!answer.ok) return showError(answer.error);
   target.textContent = answer.saved ? t('data.saved', {name: answer.file_name}) : '';
 }
@@ -657,7 +868,7 @@ function renderTab() {
   RENDER[state.tab]();
 }
 async function reload() {
-  const answer = await call('dashboard', state.period, state.nights);
+  const answer = await call('dashboard', state.period, state.nights, state.tag, state.tagged);
   if (!answer.ok) return showError(answer.error);
   state.data = answer;
   renderKpis();
@@ -679,11 +890,13 @@ async function start() {
   boot.languages.forEach(code => language.appendChild(el('option', {value: code, text: t('language.' + code)})));
   language.value = boot.language;
   fillMetricSelects();
+  fillTagSelects();
   const hasData = boot.available.nights > 0;
   $('#welcome').hidden = hasData;
   $('#content').hidden = !hasData || Boolean(state.night);
-  $('#night').hidden = !state.night;
-  if (state.night) renderNight();
+  $('#night').hidden = !state.night || Boolean(state.compare);
+  $('#compare').hidden = !state.compare;
+  if (state.compare) renderCompare(); else if (state.night) renderNight();
   $('#meta').textContent = hasData ? t('meta.range', {a: fdate(boot.available.first_night), b: fdate(boot.available.last_night), n: boot.available.nights}) : '';
   $('#foot').textContent = t('foot', {version: boot.version});
   if (hasData) await reload();
@@ -717,10 +930,30 @@ function wire() {
     state.theme = dark ? 'light' : 'dark';
     await call('set_theme', state.theme);
     applyTheme();
-    if (state.night) renderNight();
+    if (state.compare) renderCompare();
+    else if (state.night) renderNight();
     else if (state.data) { renderKpis(); renderTab(); }
   });
   $('#night-back').addEventListener('click', closeNight);
+  $('#night-compare').addEventListener('click', () => {
+    const day = state.night.night.night_date;
+    openCompare(day, state.night.previous || state.night.next || day);
+  });
+  $('#compare-back').addEventListener('click', closeCompare);
+  $('#cmp-a').addEventListener('change', event => event.target.value && openCompare(event.target.value, $('#cmp-b').value));
+  $('#cmp-b').addEventListener('change', event => event.target.value && openCompare($('#cmp-a').value, event.target.value));
+  $('#cmp-previous').addEventListener('click', () => state.compare && state.compare.a.previous && openCompare($('#cmp-a').value, state.compare.a.previous));
+  $('#cmp-week').addEventListener('click', () => openCompare($('#cmp-a').value, shiftDay($('#cmp-a').value, -7)));
+  $$('#cmp-align button').forEach(button => button.addEventListener('click', () => { state.align = button.dataset.v; if (state.compare) renderCompare(); }));
+  $('#btn-tags').addEventListener('click', showTags);
+  $('#f-tag').addEventListener('change', event => {
+    const [id, mode] = event.target.value.split(':');
+    state.tag = id ? Number(id) : null;
+    state.tagged = mode !== 'without';
+    reload();
+  });
+  $('#r-highlight').addEventListener('change', event => { state.highlight = event.target.value ? Number(event.target.value) : null; renderRelate(); });
+  $('#cmp-tag').addEventListener('change', renderTagComparison);
   $('#night-prev').addEventListener('click', () => state.night.previous && openNight(state.night.previous));
   $('#night-next').addEventListener('click', () => state.night.next && openNight(state.night.next));
   $('#night-note-save').addEventListener('click', async () => {

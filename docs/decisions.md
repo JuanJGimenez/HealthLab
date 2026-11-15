@@ -54,6 +54,9 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 46 | El tiempo bajo 85 % de oxígeno se mide en minutos, no en cantidad de intervalos | El reloj informa cada minuto en unas noches y cada 10 en otras; contar intervalos mezclaba las dos |
 | 47 | Las etiquetas iniciales se agregan con la primera migración de esquema (versión 2) | Desde la versión 0.6.0 el usuario pudo haber creado una base; todo cambio va por migración |
 | 48 | La nota libre de una fecha se guarda bajo una etiqueta reservada | Mantiene una sola tabla, `annotation`, como pedía el diseño |
+| 49 | Desactivar una etiqueta no borra sus marcas; una etiqueta inicial renombrada deja de traducirse | Nada de lo que cargó el usuario se pierde, y su nombre vale más que la traducción |
+| 50 | El filtro por etiqueta se aplica a las vistas de noches, no a la vista Actividad | Actividad agrupa días, y la regla de etiquetas por día llega con la vista del día (etapa 7) |
+| 51 | La comparación con y sin etiqueta vive en la vista Relacionar | Es la vista donde se buscan relaciones; evita sumar una séptima pestaña |
 
 ## Notas
 
@@ -66,5 +69,6 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisiones 34 a 36.** Tomadas en la etapa 3 y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 37 a 40.** Tomadas en la etapa 4 y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 41 a 44.** Tomadas en la etapa 5 y aprobadas por el usuario el 15 de noviembre de 2026.
-- **Decisiones 45 a 48.** Tomadas en la etapa 6a; pendientes de la confirmación del usuario.
+- **Decisiones 45 a 48.** Tomadas en la etapa 6a y aprobadas por el usuario el 15 de noviembre de 2026.
+- **Decisiones 49 a 51.** Tomadas en la etapa 6b; pendientes de la confirmación del usuario.
 - **Esquema.** La etapa 4 agregó la tabla `exercise_custom_type` a la versión 1 del esquema, sin migración, porque todavía no existe ninguna base en uso. Desde la primera entrega que el usuario instale, todo cambio de esquema irá por migración.

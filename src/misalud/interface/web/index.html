@@ -16,6 +16,7 @@
     </div>
     <div class="actions">
       <button class="btn primary" id="btn-import" type="button" data-t="action.update"></button>
+      <button class="btn" id="btn-tags" type="button" data-t="action.tags"></button>
       <button class="btn" id="btn-database" type="button" data-t="action.database"></button>
       <select id="language" data-label="action.language"></select>
       <button class="btn" id="theme" type="button" data-t="action.theme"></button>
@@ -44,6 +45,9 @@
           <button data-v="weekend" data-t="filter.weekend" aria-pressed="false"></button>
           <button data-v="weekdays" data-t="filter.weekdays" aria-pressed="false"></button>
         </div>
+      </div>
+      <div class="fgroup"><label class="flabel" for="f-tag" data-t="filter.tag"></label>
+        <select id="f-tag"></select>
       </div>
     </div>
 
@@ -112,10 +116,16 @@
           <label class="flabel" for="rx" data-t="relate.horizontal"></label><select id="rx"></select>
           <label class="flabel" for="ry" data-t="relate.vertical"></label><select id="ry"></select>
           <button class="btn" id="swap" type="button" data-t="relate.swap"></button>
+          <label class="flabel" for="r-highlight" data-t="relate.highlight"></label><select id="r-highlight"></select>
         </div>
         <div class="chart tall" id="r1"></div>
         <p class="stat" id="rstat" aria-live="polite"></p>
         <p class="note" data-t="relate.note"></p>
+      </div>
+      <div class="card full night-card">
+        <h2 data-t="tagcompare.title"></h2><p class="cap" data-t="tagcompare.caption"></p>
+        <div class="row"><label class="flabel" for="cmp-tag" data-t="filter.tag"></label><select id="cmp-tag"></select></div>
+        <div id="tagcompare"></div>
       </div>
     </section>
 
@@ -134,6 +144,7 @@
       <button class="btn" id="night-prev" type="button" data-t="night.previous"></button>
       <h2 id="night-title"></h2>
       <button class="btn" id="night-next" type="button" data-t="night.next"></button>
+      <button class="btn" id="night-compare" type="button" data-t="night.compare"></button>
     </div>
     <div class="facts" id="night-facts"></div>
     <div class="card night-card">
@@ -151,6 +162,35 @@
       <p class="cap" data-t="night.tracks.caption"></p>
       <div class="chips" id="night-toggles"></div>
       <div id="night-chart"></div>
+    </div>
+  </section>
+
+  <section id="compare" hidden>
+    <div class="night-nav">
+      <button class="btn" id="compare-back" type="button" data-t="night.back"></button>
+      <h2 data-t="compare.title"></h2>
+    </div>
+    <div class="card">
+      <div class="row">
+        <label class="flabel" for="cmp-a" data-t="compare.night_a"></label><input type="date" id="cmp-a">
+        <label class="flabel" for="cmp-b" data-t="compare.night_b"></label><input type="date" id="cmp-b">
+        <button class="btn" id="cmp-previous" type="button" data-t="compare.previous"></button>
+        <button class="btn" id="cmp-week" type="button" data-t="compare.week"></button>
+      </div>
+      <div class="row"><span class="flabel" data-t="compare.align"></span>
+        <div class="seg" id="cmp-align">
+          <button data-v="elapsed" data-t="compare.elapsed" aria-pressed="true"></button>
+          <button data-v="clock" data-t="compare.clock" aria-pressed="false"></button>
+        </div>
+        <span class="stat" id="cmp-message" aria-live="polite"></span>
+      </div>
+      <div class="tscroll"><table id="cmp-table"></table></div>
+    </div>
+    <div class="card night-card">
+      <h2 data-t="night.tracks"></h2>
+      <p class="cap" data-t="compare.caption"></p>
+      <div class="chips" id="compare-toggles"></div>
+      <div id="compare-chart"></div>
     </div>
   </section>
 

@@ -75,7 +75,7 @@ tablas `night` y `day` y archiva el zip.
 | `queries` | `days` | Lista de días y promedios por mes |
 | `queries` | `database` | Historial de importaciones, tamaño de cada tabla y período disponible |
 | `queries` | `night_detail` | Una noche con sus ocho pistas; cada pista es una consulta independiente registrada en una lista |
-| `annotations` | `store` | Etiquetas y nota libre de cada fecha; la fusión nunca escribe aquí |
+| `annotations` | `store` | Etiquetas y nota libre de cada fecha, y administración del catálogo de etiquetas; la fusión nunca escribe aquí |
 
 Las consultas devuelven listas y diccionarios con texto, números y vacíos, listos para pasar a la
 ventana. Una pantalla solo puede pedir métricas de una lista fija, porque el nombre de la métrica
