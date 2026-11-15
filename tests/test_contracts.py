@@ -28,12 +28,13 @@ def test_contracts_are_typed() -> None:
 
 def test_every_used_table_has_a_key_and_full_history() -> None:
     used = [contract for contract in load_contracts().values() if contract.is_used]
-    assert len(used) == 20
+    assert len(used) == 19
     for contract in used:
         assert contract.key == "datauuid", contract.name
-    windowed = {contract.name for contract in used if contract.rolling_window_days}
-    # Minute-by-minute steps are fed from another table; this one is listed only as a source.
-    assert windowed <= {"tracker.pedometer_step_count"}
+    # Step intervals come from the daily table, which carries the full history;
+    # the 36-day minute-by-minute step table is not used.
+    assert {contract.name for contract in used if contract.rolling_window_days} == set()
+    assert "steps_interval" in load_contracts()["step_daily_trend"].feeds
 
 
 def test_rolling_window_tables_are_flagged() -> None:
