@@ -3,6 +3,27 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [0.9.0] - 2026-11-15
+
+Etapa 7 del plan: la vista del día.
+
+### Agregado
+
+- Pantalla de un día, de 0 a 24 horas: pulso, estrés, pasos cada 10 minutos, ejercicio grabado y
+  sueño sobre el mismo eje, con el resumen del día, sus etiquetas y enlaces a la noche anterior y
+  a la siguiente. Se llega desde el detalle de una noche y desde el calendario.
+- Día típico en la vista Actividad: pulso y estrés promedio por hora, con días de semana y fines
+  de semana por separado.
+- Cruce de día y noche en la vista Relacionar: ocho medidas del día contra cualquier medida de la
+  noche que le sigue.
+- Leyenda de ventana corta: la app avisa cuando el período consultado no está cubierto por una
+  tabla que Samsung exporta solo por unas semanas. Hoy ninguna tabla en uso tiene ese límite.
+
+### Corregido
+
+- El contrato de los pasos por intervalo apuntaba a la tabla de 36 días, que no se usa.
+- Los bloques de sueño y de ejercicio de la pantalla del día mostraban "NaN" como texto.
+
 ## [0.8.0] - 2026-11-15
 
 Etapa 6b del plan: comparar dos noches y usar las etiquetas en las vistas. Cierra la etapa 6.

@@ -118,6 +118,19 @@ def test_from_an_empty_app_to_a_dashboard_in_two_languages(
     title = page.inner_text("#night-title")
     page.click("#night-next")
     page.wait_for_function(f"document.querySelector('#night-title').textContent !== {title!r}")
+    # The day the night began has its own screen, from 0 to 24 hours.
+    page.click("#night-day")
+    page.wait_for_selector("#day:not([hidden])")
+    assert page.inner_text("#day-title").startswith("Día")
+    assert page.locator("#day-facts .fact").count() == 6
+    page.click("#day-tags .chip:nth-child(2)")
+    page.wait_for_selector("#day-tags .chip:nth-child(2)[aria-pressed=true]")
+    day_title = page.inner_text("#day-title")
+    page.click("#day-next")
+    page.wait_for_function(f"document.querySelector('#day-title').textContent !== {day_title!r}")
+    page.click("#day-back")
+    assert page.is_visible("#night")
+
     # Two nights can be compared, aligned by elapsed time or by the clock.
     page.click("#night-compare")
     page.wait_for_selector("#compare:not([hidden])")

@@ -30,6 +30,7 @@
   </section>
 
   <div id="content" hidden>
+    <div id="notices"></div>
     <div class="filters" role="group" data-label="filter.label">
       <div class="fgroup"><span class="flabel" data-t="filter.period"></span>
         <div class="seg" id="f-period">
@@ -105,6 +106,8 @@
         <div class="card"><h2 data-t="activity.steps.title"></h2><p class="cap" data-t="activity.steps.caption"></p><div class="chart" id="a1"></div></div>
         <div class="card"><h2 data-t="activity.exercise.title"></h2><p class="cap" data-t="activity.exercise.caption"></p><div class="chart" id="a2"></div></div>
         <div class="card full"><h2 data-t="activity.stress.title"></h2><p class="cap" data-t="activity.stress.caption"></p><div class="chart" id="a3"></div></div>
+        <div class="card"><h2 data-t="hourly.pulse.title"></h2><p class="cap" data-t="hourly.caption"></p><div class="chart" id="a4"></div></div>
+        <div class="card"><h2 data-t="hourly.stress.title"></h2><p class="cap" data-t="hourly.caption"></p><div class="chart" id="a5"></div></div>
       </div>
       <p class="note" data-t="activity.note"></p>
     </section>
@@ -145,6 +148,7 @@
       <h2 id="night-title"></h2>
       <button class="btn" id="night-next" type="button" data-t="night.next"></button>
       <button class="btn" id="night-compare" type="button" data-t="night.compare"></button>
+      <button class="btn" id="night-day" type="button" data-t="day.view"></button>
     </div>
     <div class="facts" id="night-facts"></div>
     <div class="card night-card">
@@ -162,6 +166,33 @@
       <p class="cap" data-t="night.tracks.caption"></p>
       <div class="chips" id="night-toggles"></div>
       <div id="night-chart"></div>
+    </div>
+  </section>
+
+  <section id="day" hidden>
+    <div class="night-nav">
+      <button class="btn" id="day-back" type="button" data-t="night.back"></button>
+      <button class="btn" id="day-prev" type="button" data-t="day.previous"></button>
+      <h2 id="day-title"></h2>
+      <button class="btn" id="day-next" type="button" data-t="day.next"></button>
+      <button class="btn" id="day-night-before" type="button" data-t="day.night_before"></button>
+      <button class="btn" id="day-night-after" type="button" data-t="day.night_after"></button>
+    </div>
+    <div class="facts" id="day-facts"></div>
+    <div class="card night-card">
+      <h2 data-t="night.tags"></h2>
+      <p class="cap" data-t="night.tags.caption"></p>
+      <div class="chips" id="day-tags"></div>
+      <div class="row">
+        <input type="text" id="day-screen-note" data-placeholder="night.note.placeholder" maxlength="300">
+        <button class="btn" id="day-note-save" type="button" data-t="night.save"></button>
+        <span class="stat" id="day-note-done" aria-live="polite"></span>
+      </div>
+    </div>
+    <div class="card night-card">
+      <h2 data-t="day.tracks"></h2>
+      <p class="cap" data-t="day.tracks.caption"></p>
+      <div id="day-chart"></div>
     </div>
   </section>
 

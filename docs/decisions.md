@@ -57,6 +57,9 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 49 | Desactivar una etiqueta no borra sus marcas; una etiqueta inicial renombrada deja de traducirse | Nada de lo que cargó el usuario se pierde, y su nombre vale más que la traducción |
 | 50 | El filtro por etiqueta se aplica a las vistas de noches, no a la vista Actividad | Actividad agrupa días, y la regla de etiquetas por día llega con la vista del día (etapa 7) |
 | 51 | La comparación con y sin etiqueta vive en la vista Relacionar | Es la vista donde se buscan relaciones; evita sumar una séptima pestaña |
+| 52 | La pantalla de un día muestra siempre sus cinco pistas, sin elección | Son pocas y todas hacen falta para leer el día; la elección de pistas queda en la pantalla de la noche |
+| 53 | En el día típico, "fin de semana" es sábado y domingo; en las noches sigue siendo viernes y sábado | Un día se cuenta por el calendario; una noche, por el día en que empieza |
+| 54 | El contrato de pasos se corrigió: los pasos por intervalo salen de la tabla diaria, que trae todo el historial | El contrato todavía nombraba la tabla de 36 días; con eso la leyenda de ventana corta aparecía sin motivo |
 
 ## Notas
 
@@ -70,5 +73,6 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisiones 37 a 40.** Tomadas en la etapa 4 y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 41 a 44.** Tomadas en la etapa 5 y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 45 a 48.** Tomadas en la etapa 6a y aprobadas por el usuario el 15 de noviembre de 2026.
-- **Decisiones 49 a 51.** Tomadas en la etapa 6b; pendientes de la confirmación del usuario.
+- **Decisiones 49 a 51.** Tomadas en la etapa 6b y aprobadas por el usuario el 15 de noviembre de 2026.
+- **Decisiones 52 a 54.** Tomadas en la etapa 7; pendientes de la confirmación del usuario.
 - **Esquema.** La etapa 4 agregó la tabla `exercise_custom_type` a la versión 1 del esquema, sin migración, porque todavía no existe ninguna base en uso. Desde la primera entrega que el usuario instale, todo cambio de esquema irá por migración.

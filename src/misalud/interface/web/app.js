@@ -14,7 +14,7 @@ const call = (name, ...args) => window.pywebview.api[name](...args);
 
 const state = {period: 'all', nights: 'all', tab: 'oxygen', x: 'night_hr_avg', y: 'low_minutes',
   sort: ['night_date', -1], texts: {}, language: 'es', theme: 'system', boot: null, data: null, night: null,
-  tag: null, tagged: true, highlight: null, compare: null, align: 'elapsed'};
+  tag: null, tagged: true, highlight: null, compare: null, align: 'elapsed', day: null};
 let T = null;                     // colour tokens read from the stylesheet
 const charts = {};
 
@@ -345,7 +345,22 @@ function monthBars(id, key, unit, digits, label) {
     series: [{type: 'bar', data: months.map(month => month[key]), barMaxWidth: 28, itemStyle: {color: T.c1, borderRadius: [4, 4, 0, 0]}}]
   }), true);
 }
+function hourlyChart(id, rows, unit) {
+  if (emptyChart(id, rows.length)) return;
+  const byHour = new Map(rows.map(row => [row.hour, row]));
+  const hours = Array.from({length: 24}, (_, hour) => hour);
+  const pick = key => hours.map(hour => (byHour.has(hour) ? byHour.get(hour)[key] : null));
+  chart(id).setOption(Object.assign(baseOption(), {
+    xAxis: categoryAxis(hours.map(hour => String(hour).padStart(2, '0')), {boundaryGap: false}), yAxis: valueAxis({scale: true}),
+    tooltip: Object.assign(baseOption().tooltip, {formatter: points => tip(points[0].axisValue + ':00',
+      points.map(point => ({c: point.color, v: fmt(point.value, 0) + (unit ? ' ' + unit : ''), l: point.seriesName})))}),
+    series: [Object.assign(lineSeries(t('hourly.weekdays'), pick('weekdays'), T.c1), {connectNulls: true, symbolSize: 5}),
+      Object.assign(lineSeries(t('hourly.weekend'), pick('weekend'), T.c2), {connectNulls: true, symbolSize: 5})]
+  }), true);
+}
 function renderActivity() {
+  hourlyChart('a4', state.data.hourly.pulse, t('unit.bpm'));
+  hourlyChart('a5', state.data.hourly.stress, '');
   monthBars('a1', 'steps', '', 0, t('activity.steps.label'));
   monthBars('a2', 'exercise_min', 'min', 0, t('activity.exercise.label'));
   monthBars('a3', 'stress_avg', '', 0, t('activity.stress.label'));
@@ -378,7 +393,7 @@ function fillMetricSelects() {
   [['#rx', state.x], ['#ry', state.y]].forEach(([selector, chosen]) => {
     const select = $(selector);
     select.textContent = '';
-    state.boot.night_metrics.forEach(metric => select.appendChild(el('option', {value: metric, text: t('metric.' + metric)})));
+    state.boot.relate_metrics.forEach(metric => select.appendChild(el('option', {value: metric, text: t('metric.' + metric)})));
     select.value = chosen;
   });
 }
@@ -591,6 +606,99 @@ function drawTracks() {
   c.setOption(option, true);
 }
 
+/* ---------- one day ---------- */
+const blocks = (fill, text) => (spans, X = same) => ({type: 'custom', data: spans.map(span => [X(span.from), X(span.to)]), encode: {x: [0, 1]},
+  renderItem: (params, api) => {
+    const from = api.coord([api.value(0), 0]), to = api.coord([api.value(1), 1]);
+    const shape = {x: from[0], y: to[1], width: Math.max(to[0] - from[0], 2), height: from[1] - to[1]};
+    return {type: 'group', children: [{type: 'rect', shape, style: {fill: fill()}},
+      {type: 'text', style: {text: text ? text(spans[params.dataIndex]) : '', x: shape.x + 6, y: shape.y + shape.height / 2, verticalAlign: 'middle', fill: T.bg, fontSize: 11,
+        width: shape.width - 10, overflow: 'truncate'}}]};
+  }});
+const flat = () => ({min: 0, max: 1, axisLabel: {show: false}, splitLine: {show: false}});
+const DAY_VIEWS = {
+  pulse: {series: points => TRACK_VIEWS.pulse.series(points), axis: () => ({scale: true}), text: point => fmt(point.value[1], 0) + ' ' + t('unit.bpm')},
+  stress: {series: points => ({type: 'scatter', data: points.map(point => [point.at, point.value]), symbolSize: 7, itemStyle: {color: T.c3}}),
+    axis: () => ({min: 0, max: 100}), text: point => fmt(point.value[1], 0)},
+  steps: {series: spans => ({type: 'custom', data: spans.map(span => [span.from, span.to, span.value]), encode: {x: [0, 1], y: 2},
+      renderItem: (params, api) => {
+        const from = api.coord([api.value(0), api.value(2)]), to = api.coord([api.value(1), 0]);
+        return {type: 'rect', shape: {x: from[0], y: from[1], width: Math.max(to[0] - from[0] - 1, 1), height: to[1] - from[1]}, style: {fill: T.c1}};
+      }}),
+    axis: () => ({min: 0}), text: point => fmt(point.value[2], 0)},
+  exercise: {series: blocks(() => T.c2, span => span.label), axis: flat, text: point => state.day.tracks.exercise[point.dataIndex].label},
+  sleep: {series: blocks(() => T.c1), axis: flat, text: point => clock(point.value[0]) + ' – ' + clock(point.value[1])}
+};
+function drawChips(container, day, tags, annotations, onSaved) {
+  container.textContent = '';
+  tags.forEach(tag => {
+    const set = annotations.tags.includes(tag.tag_id);
+    container.appendChild(el('button', {class: 'chip', type: 'button', 'aria-pressed': String(set), text: tagName(tag), onclick: async () => {
+      const saved = await call('set_tag', day, tag.tag_id, !set);
+      if (!saved.ok) return showError(saved.error);
+      onSaved(saved.annotations);
+    }}));
+  });
+}
+async function openDayScreen(day) {
+  const answer = await call('day_detail', day);
+  if (!answer.ok) return showError(answer.error);
+  if (!answer.found) return;
+  state.day = answer;
+  ['#content', '#night', '#compare'].forEach(selector => { $(selector).hidden = true; });
+  $('#day').hidden = false;
+  renderDay();
+  window.scrollTo(0, 0);
+}
+function closeDay() {
+  state.day = null;
+  $('#day').hidden = true;
+  if (state.night) { $('#night').hidden = false; renderNight(); } else closeNight();
+}
+function renderDay() {
+  const {day, tracks, tags} = state.day;
+  const iso = day.day;
+  $('#day-title').textContent = t('day.screen.title', {date: fdate(iso), day: weekday(((new Date(utc(iso)).getUTCDay() + 6) % 7) + 1)});
+  $('#day-prev').disabled = !state.day.previous;
+  $('#day-next').disabled = !state.day.next;
+  $('#day-night-before').disabled = !day.previous_night_date;
+  $('#day-night-after').disabled = !day.next_night_date;
+  const pulse = day.hr_avg === null ? '–' : fmt(day.hr_min, 0) + ' – ' + fmt(day.hr_avg, 0) + ' – ' + fmt(day.hr_max, 0);
+  const exercise = day.exercise_count ? fmt(day.exercise_min, 0) + ' min · ' + day.exercise_types : '–';
+  const facts = [['dayfact.steps', fmt(day.steps, 0)], ['dayfact.active', fmt(day.active_min, 0)], ['dayfact.exercise', exercise],
+    ['dayfact.pulse', pulse], ['dayfact.stress', fmt(day.stress_avg, 0)], ['dayfact.energy', fmt(day.energy_score, 0)]];
+  const box = $('#day-facts');
+  box.textContent = '';
+  facts.forEach(([key, value]) => box.appendChild(fact(t(key), value)));
+  drawChips($('#day-tags'), iso, tags, state.day.annotations, saved => { state.day.annotations = saved; renderDay(); });
+  $('#day-screen-note').value = state.day.annotations.note || '';
+  $('#day-note-done').textContent = '';
+
+  const names = state.boot.day_tracks;
+  const HEIGHT = 84, GAP = 44, TOP = 30;
+  $('#day-chart').style.height = (TOP + names.length * (HEIGHT + GAP) + 30) + 'px';
+  const c = chart('day-chart');
+  c.resize();
+  c.clear();
+  const option = {animation: false, textStyle: {fontFamily: 'inherit'}, grid: [], xAxis: [], yAxis: [], series: [], title: [],
+    axisPointer: {link: [{xAxisIndex: 'all'}], lineStyle: {color: T.tm, width: 1}},
+    tooltip: {trigger: 'axis', confine: true, backgroundColor: T.bg, borderColor: T.line, borderWidth: 1, padding: [8, 10], textStyle: {color: T.tp, fontSize: 12},
+      extraCssText: 'box-shadow:0 4px 16px rgba(0,0,0,.18);border-radius:8px;',
+      formatter: points => tip(clock(points[0].axisValue), points.map(point => ({c: point.color, v: DAY_VIEWS[names[point.seriesIndex]].text(point), l: point.seriesName})))},
+    dataZoom: [{type: 'inside', xAxisIndex: names.map((_, index) => index), filterMode: 'none'}]};
+  names.forEach((name, index) => {
+    const data = tracks[name], view = DAY_VIEWS[name], top = TOP + index * (HEIGHT + GAP);
+    option.title.push({text: t('track.' + name) + (data.length ? '' : ' · ' + t('night.no_data')), left: 4, top: top - 24,
+      textStyle: {color: data.length ? T.ts : T.tm, fontSize: 12, fontWeight: 600}});
+    option.grid.push({left: 64, right: 16, top, height: HEIGHT});
+    option.xAxis.push(Object.assign(axisBase(), {type: 'time', gridIndex: index, min: iso + 'T00:00:00', max: shiftDay(iso, 1) + 'T00:00:00', splitLine: {show: false},
+      axisLabel: {color: T.ts, fontSize: 11, show: index === names.length - 1, formatter: value => clock(value)}}));
+    option.yAxis.push(Object.assign(axisBase(), {type: 'value', gridIndex: index, splitNumber: 3}, view.axis(data)));
+    option.series.push(Object.assign(view.series(data), {name: t('track.' + name), xAxisIndex: index, yAxisIndex: index}));
+  });
+  c.setOption(option, true);
+}
+
 /* ---------- compare two nights ---------- */
 const hoursText = hours => { const total = Math.round(hours * 60); return Math.floor(total / 60) + ':' + String(Math.abs(total % 60)).padStart(2, '0'); };
 const signed = (value, digits) => (value === null ? '–' : (value > 0 ? '+' : '') + fmt(value, digits));
@@ -715,7 +823,9 @@ async function openDay(day) {
   }});
   const body = [el('p', {class: 'cap', text: t('night.tags.caption')}), chips, el('div', {class: 'row'}, [note, save, done])];
   if (!answer.has_night) body.push(el('p', {class: 'note', text: t('day.no_night')}));
-  const buttons = answer.has_night ? [el('button', {class: 'btn primary', type: 'button', id: 'day-open-night', text: t('day.open_night'), onclick: () => { closeDialog(); openNight(day); }})] : [];
+  const buttons = [];
+  if (answer.has_day) buttons.push(el('button', {class: 'btn', type: 'button', id: 'day-open-day', text: t('day.view'), onclick: () => { closeDialog(); openDayScreen(day); }}));
+  if (answer.has_night) buttons.push(el('button', {class: 'btn primary', type: 'button', id: 'day-open-night', text: t('day.open_night'), onclick: () => { closeDialog(); openNight(day); }}));
   openDialog(t('day.title', {date: fdate(day)}), body, buttons);
 }
 async function showTags() {
@@ -871,6 +981,10 @@ async function reload() {
   const answer = await call('dashboard', state.period, state.nights, state.tag, state.tagged);
   if (!answer.ok) return showError(answer.error);
   state.data = answer;
+  const notices = $('#notices');
+  notices.textContent = '';
+  answer.notices.forEach(notice => notices.appendChild(banner(t('notice.short_window',
+    {table: notice.table, days: notice.window_days, from: fdate(notice.covered_from), to: fdate(notice.covered_to)}))));
   renderKpis();
   renderTab();
 }
@@ -893,14 +1007,15 @@ async function start() {
   fillTagSelects();
   const hasData = boot.available.nights > 0;
   $('#welcome').hidden = hasData;
-  $('#content').hidden = !hasData || Boolean(state.night);
-  $('#night').hidden = !state.night || Boolean(state.compare);
+  $('#content').hidden = !hasData || Boolean(state.night) || Boolean(state.day);
+  $('#night').hidden = !state.night || Boolean(state.compare) || Boolean(state.day);
   $('#compare').hidden = !state.compare;
-  if (state.compare) renderCompare(); else if (state.night) renderNight();
+  $('#day').hidden = !state.day;
+  if (state.day) renderDay(); else if (state.compare) renderCompare(); else if (state.night) renderNight();
   $('#meta').textContent = hasData ? t('meta.range', {a: fdate(boot.available.first_night), b: fdate(boot.available.last_night), n: boot.available.nights}) : '';
   $('#foot').textContent = t('foot', {version: boot.version});
   if (hasData) await reload();
-  if (state.night) $('#content').hidden = true;
+  if (state.night || state.day) $('#content').hidden = true;
 }
 function wire() {
   [['#f-period', 'period'], ['#f-nights', 'nights']].forEach(([selector, key]) => {
@@ -930,7 +1045,8 @@ function wire() {
     state.theme = dark ? 'light' : 'dark';
     await call('set_theme', state.theme);
     applyTheme();
-    if (state.compare) renderCompare();
+    if (state.day) renderDay();
+    else if (state.compare) renderCompare();
     else if (state.night) renderNight();
     else if (state.data) { renderKpis(); renderTab(); }
   });
@@ -940,6 +1056,18 @@ function wire() {
     openCompare(day, state.night.previous || state.night.next || day);
   });
   $('#compare-back').addEventListener('click', closeCompare);
+  $('#night-day').addEventListener('click', () => openDayScreen(state.night.night.night_date));
+  $('#day-back').addEventListener('click', closeDay);
+  $('#day-prev').addEventListener('click', () => state.day.previous && openDayScreen(state.day.previous));
+  $('#day-next').addEventListener('click', () => state.day.next && openDayScreen(state.day.next));
+  $('#day-night-before').addEventListener('click', () => { const night = state.day.day.previous_night_date; state.day = null; $('#day').hidden = true; openNight(night); });
+  $('#day-night-after').addEventListener('click', () => { const night = state.day.day.next_night_date; state.day = null; $('#day').hidden = true; openNight(night); });
+  $('#day-note-save').addEventListener('click', async () => {
+    const saved = await call('set_note', state.day.day.day, $('#day-screen-note').value);
+    if (!saved.ok) return showError(saved.error);
+    state.day.annotations = saved.annotations;
+    $('#day-note-done').textContent = t('night.saved');
+  });
   $('#cmp-a').addEventListener('change', event => event.target.value && openCompare(event.target.value, $('#cmp-b').value));
   $('#cmp-b').addEventListener('change', event => event.target.value && openCompare($('#cmp-a').value, event.target.value));
   $('#cmp-previous').addEventListener('click', () => state.compare && state.compare.a.previous && openCompare($('#cmp-a').value, state.compare.a.previous));
