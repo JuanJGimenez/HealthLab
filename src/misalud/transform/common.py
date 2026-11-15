@@ -511,3 +511,19 @@ def unique_by_utc_start(points: pd.DataFrame) -> pd.DataFrame:
     """
     unique = points.drop_duplicates("start_utc", keep="last").sort_values("start_utc")
     return unique.drop(columns="parent_id").reset_index(drop=True)
+
+
+def unique_within_parent(points: pd.DataFrame) -> pd.DataFrame:
+    """Keep one measurement per parent record and UTC moment, the last in file order.
+
+    A few detail files list the same moment twice. The pair parent and moment is
+    the merge key of the series that belong to a night, so it must not repeat.
+
+    Args:
+        points: Output of ``expand_details``.
+
+    Returns:
+        The measurements without repeats, in their original order.
+    """
+    unique = points.drop_duplicates(["parent_id", "start_utc"], keep="last")
+    return unique.reset_index(drop=True)

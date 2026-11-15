@@ -25,6 +25,7 @@ from misalud.transform.common import (
     text_column,
     to_number,
     unique_by_utc_start,
+    unique_within_parent,
 )
 from tests.support.fake_source import EXPORTED_AT, FakeSource, epoch_ms, raw, timed
 
@@ -343,3 +344,13 @@ def test_repeated_measurements_are_told_apart_by_utc_moment_not_local_time() -> 
     unique = unique_by_utc_start(points)
     assert unique["v"].tolist() == [2.0, 3.0]
     assert "parent_id" not in unique.columns
+
+
+def test_a_moment_repeated_inside_one_parent_is_stored_once() -> None:
+    moments = pd.to_datetime(["2026-01-02 03:00", "2026-01-02 03:00", "2026-01-02 03:00"])
+    points = pd.DataFrame(
+        {"parent_id": ["a", "a", "b"], "start_utc": moments, "v": [1.0, 2.0, 3.0]}
+    )
+    unique = unique_within_parent(points)
+    assert unique["parent_id"].tolist() == ["a", "b"]
+    assert unique["v"].tolist() == [2.0, 3.0]

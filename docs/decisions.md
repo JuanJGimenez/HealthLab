@@ -39,12 +39,16 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 31 | Las series por minuto y por intervalo se identifican por el momento en UTC, y guardan además la hora local | La hora local se repite al viajar hacia el oeste; identificar por ella borraba 111 minutos de pulso reales |
 | 32 | Cada dominio se transforma por separado; si uno falla, los demás siguen | Aplica la decisión 10: un cambio de Samsung en una tabla no debe impedir importar el resto |
 | 33 | Un valor 0 de frecuencia respiratoria se guarda vacío y el registro se conserva | En esa tabla 0 significa sin medición; rechazar la noche entera perdía sus otros datos |
+| 34 | Una exportación más vieja que la última importada agrega lo que falta, pero no pisa nada | "La exportación más nueva gana" debe valer también si los archivos se importan en desorden |
+| 35 | La vista previa se arma en tablas temporales en memoria, no en una segunda base en disco | Mismo resguardo, sin archivos intermedios que limpiar; las tablas reales no se tocan hasta confirmar |
+| 36 | La primera importación no genera respaldo | Una base vacía no tiene nada que proteger y ocuparía uno de los dos lugares |
 
 ## Notas
 
-- **Decisión 4.** La etapa 0 confirmó el primer motivo. El segundo, el reproceso de sesiones de sueño, no se observó entre las exportaciones de septiembre y noviembre de 2026.
+- **Decisión 4.** La etapa 3 fusionó las exportaciones de septiembre y noviembre de 2026 y ningún registro importado cambió. Los cambios vistos en la etapa 0 estaban en tablas que MiSalud no importa. La regla queda como resguardo.
 - **Decisión 20.** La cantidad de pistas quedó reemplazada por la decisión 26.
 - **Decisión 22.** Tras la etapa 0, ninguna tabla de la primera versión es de ventana corta. El mecanismo queda disponible.
 - **Decisiones 27 y 28.** Tomadas en la etapa 1 y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 29 y 30.** Tomadas en la etapa 2a y aprobadas por el usuario el 15 de noviembre de 2026.
-- **Decisiones 31 a 33.** Tomadas en la etapa 2b; pendientes de la confirmación del usuario.
+- **Decisiones 31 a 33.** Tomadas en la etapa 2b y aprobadas por el usuario el 15 de noviembre de 2026.
+- **Decisiones 34 a 36.** Tomadas en la etapa 3; pendientes de la confirmación del usuario.

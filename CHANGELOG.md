@@ -3,6 +3,39 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [0.4.0] - 2026-11-15
+
+Etapa 3 del plan: base de datos y fusión. La app ya guarda una exportación en su base, fusiona
+las siguientes sin perder nada y lleva el registro de cada importación. Todavía no calcula las
+tablas `night` y `day` ni abre ventana.
+
+### Agregado
+
+- `storage.schema` y `storage.database`: esquema de la base, con versión y migraciones.
+- `storage.merge`: vista previa y fusión con las cuatro reglas, en una sola transacción, con
+  historial de valores reemplazados y registro de la importación.
+- `storage.backup`: respaldo antes de fusionar, 2 respaldos conservados y restauración.
+- `storage.exports`: guarda los zips originales y borra los que ya no hacen falta.
+- `pipeline.importing`: la importación completa en dos pasos, vista previa y confirmación.
+- `transform.export`: un dominio cuya tabla el informe de compatibilidad marca como incompatible
+  no se transforma.
+
+### Comprobado con datos reales
+
+- Septiembre de 2026 sobre base vacía: 2.550.780 registros nuevos. Vista previa en 25 segundos,
+  fusión en 3.
+- Noviembre de 2026 encima: 284.230 registros nuevos, 2.550.780 sin cambios, ninguno actualizado.
+  Respaldo previo automático.
+- Septiembre otra vez, después de noviembre: nada que agregar ni cambiar.
+- La base ocupa 233 MB.
+
+### Corregido
+
+- Las series por minuto de una noche traían 3 momentos repetidos dentro del mismo archivo de
+  detalle; ahora se guarda uno solo.
+- `merge_rules.md` decía que los pasos del día de la exportación llegaban cortados. El total del
+  día, que es lo que se importa, ya estaba completo; lo que faltaba eran filas que no se usan.
+
 ## [0.3.0] - 2026-11-15
 
 Etapa 2b del plan: capa de transformación. La app ya convierte una exportación completa en las

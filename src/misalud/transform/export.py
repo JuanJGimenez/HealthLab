@@ -58,6 +58,29 @@ DOMAINS: Final[dict[str, Transformer]] = {
 }
 """Every domain and the function that transforms it. A domain is the unit of failure."""
 
+DOMAIN_SOURCES: Final[dict[str, tuple[str, ...]]] = {
+    "sleep": ("sleep", "sleep_stage"),
+    "oxygen": ("tracker.oxygen_saturation",),
+    "skin_temperature": ("skin_temperature",),
+    "respiratory_rate": ("respiratory_rate",),
+    "snoring": ("sleep_snoring",),
+    "heart_rate": ("tracker.heart_rate",),
+    "hrv": ("hrv",),
+    "stress": ("stress",),
+    "ecg": ("ecg",),
+    "exercise": ("exercise",),
+    "weight": ("weight",),
+    "steps": ("step_daily_trend",),
+    "activity_summary": ("activity.day_summary",),
+    "vitality": ("vitality_score",),
+    "movement": ("movement",),
+}
+"""Samsung tables each domain cannot work without. A domain is skipped when one is blocked.
+
+``sleep_combined`` is not listed: the sleep domain uses it when present and works
+without it.
+"""
+
 
 @dataclass(slots=True)
 class TransformResult:
@@ -75,13 +98,19 @@ class TransformResult:
 
 
 def transform_export(
-    source: Source, domains: dict[str, Transformer] | None = None
+    source: Source,
+    domains: dict[str, Transformer] | None = None,
+    *,
+    blocked_tables: frozenset[str] = frozenset(),
 ) -> TransformResult:
     """Transform every domain of an export.
 
     Args:
         source: The export.
         domains: Domains to run. Defaults to all of them.
+        blocked_tables: Samsung tables the compatibility report found unusable.
+            A domain that reads one of them is not run and counts as failed: a
+            column that changed meaning could otherwise pass as valid data.
 
     Returns:
         The tables of the domains that succeeded, every issue found and the
@@ -89,6 +118,10 @@ def transform_export(
     """
     result = TransformResult()
     for name, transformer in (DOMAINS if domains is None else domains).items():
+        blocked = sorted(blocked_tables.intersection(DOMAIN_SOURCES.get(name, ())))
+        if blocked:
+            result.failures[name] = f"incompatible tables: {', '.join(blocked)}"
+            continue
         try:
             domain = transformer(source)
         except (ReadingError, TransformError) as error:

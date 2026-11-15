@@ -21,6 +21,7 @@ from misalud.transform.common import (
     prepare_timed,
     reject_out_of_range,
     require_columns,
+    unique_within_parent,
 )
 
 OVERNIGHT_TAG: Final = "31301"
@@ -112,7 +113,7 @@ def transform_oxygen(source: Source) -> DomainResult:
             issues=result.issues,
         )
     points["is_irregular"] = points["irregular"].map({0.0: False, 1.0: True}).astype("boolean")
-    points = points.rename(columns={"parent_id": "night_samsung_id"})
+    points = unique_within_parent(points).rename(columns={"parent_id": "night_samsung_id"})
 
     result.tables["spo2_night"] = nights.sort_values("start_at")[NIGHT_COLUMNS].reset_index(
         drop=True

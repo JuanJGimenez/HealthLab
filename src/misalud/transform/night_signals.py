@@ -23,6 +23,7 @@ from misalud.transform.common import (
     report,
     require_columns,
     text_column,
+    unique_within_parent,
 )
 
 TRUE_TEXTS: Final = frozenset({"true", "1"})
@@ -102,7 +103,8 @@ def transform_skin_temperature(source: Source) -> DomainResult:
         table="skin_temperature_minute",
         rule="temperature_out_of_range",
         issues=result.issues,
-    ).rename(columns={"parent_id": "night_samsung_id"})
+    )
+    points = unique_within_parent(points).rename(columns={"parent_id": "night_samsung_id"})
     columns = ["samsung_id", "start_at", "end_at", "utc_offset_min", *names.values()]
     result.tables["skin_temperature"] = nights.sort_values("start_at")[columns].reset_index(
         drop=True
@@ -178,7 +180,8 @@ def transform_respiratory_rate(source: Source) -> DomainResult:
         table="respiratory_rate_minute",
         rule="rate_out_of_range",
         issues=result.issues,
-    ).rename(columns={"parent_id": "night_samsung_id"})
+    )
+    points = unique_within_parent(points).rename(columns={"parent_id": "night_samsung_id"})
     columns = [
         "samsung_id",
         "start_at",

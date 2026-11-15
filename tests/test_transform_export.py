@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import pandas as pd
 
+from misalud.reading.contracts import load_contracts
 from misalud.reading.errors import TableMissingError
 from misalud.reading.source import ExportSource
 from misalud.transform.common import DomainResult, Source, TransformError, ValidationIssue
-from misalud.transform.export import DOMAINS, transform_export
+from misalud.transform.export import DOMAIN_SOURCES, DOMAINS, transform_export
 from tests.support import synthetic_export as synth
 from tests.support.fake_source import FakeSource
 from tests.support.synthetic_export import SyntheticExport
@@ -81,3 +82,19 @@ def test_the_synthetic_export_goes_through_its_domains(export: SyntheticExport) 
 
     assert [(i.table, i.rule) for i in result.issues] == [("snoring_event", "date_before_2020")]
     assert not result.tables["snoring_event"]["start_at"].dt.year.eq(1970).any()
+
+
+def test_every_domain_names_the_used_tables_it_reads() -> None:
+    contracts = load_contracts()
+    assert set(DOMAIN_SOURCES) == set(DOMAINS)
+    for domain, tables in DOMAIN_SOURCES.items():
+        for table in tables:
+            assert contracts[table].is_used, f"{domain}: {table}"
+
+
+def test_a_domain_that_reads_a_blocked_table_is_not_run(export: SyntheticExport) -> None:
+    source = ExportSource.from_folder(export.root)
+    result = transform_export(source, blocked_tables=frozenset({"sleep_stage", "badge"}))
+    assert result.failures["sleep"] == "incompatible tables: sleep_stage"
+    assert "sleep_session" not in result.tables
+    assert "spo2_night" in result.tables

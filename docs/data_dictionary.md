@@ -314,12 +314,18 @@ El detalle de columnas se completa al construir la etapa 4.
 
 | Tabla | Una fila es | Columnas principales |
 |---|---|---|
-| `import_log` | Una importación | `import_id`, `imported_at`, `file_name`, `samsung_app_version`, `first_date`, `last_date`, y por tabla: nuevos, actualizados, sin cambios, rechazados |
+| `import_log` | Una importación | `import_id`, `imported_at`, `file_name`, `samsung_app_version`, `exported_at`, `first_date`, `last_date` |
+| `import_table` | Lo que una importación hizo en una tabla | `import_id`, `table_name`, `new_count`, `updated_count`, `unchanged_count`, `kept_count`, `superseded_count`, `rejected_count` |
+| `import_failure` | Un dominio que no se pudo importar | `import_id`, `domain`, `reason` |
 | `record_history` | La versión anterior de un registro actualizado | `table_name`, `key`, `replaced_at`, `import_id`, `previous_values` |
-| `validation_issue` | Un registro rechazado | `import_id`, `table_name`, `key`, `rule`, `value` |
+| `validation_issue` | Un registro rechazado u observado | `import_id`, `table_name`, `key`, `rule`, `value`, `action` |
 | `schema_version` | La versión del esquema de la base | `version`, `applied_at` |
 | `sleep_stage_code` | Un código de etapa | `code`, `name`, `is_verified` |
-| `exercise_type_code` | Un tipo de ejercicio | `code` o `custom_id`, `name`, `is_verified` |
+| `exercise_type_code` | Un tipo de ejercicio estándar | `code`, `name`, `is_verified` |
+
+`previous_values` guarda los valores anteriores como texto JSON. Los nombres de los códigos se guardan
+en inglés (`light`, `walking`); la interfaz los traduce. Los ejercicios personalizados, como CrossFit,
+se resolverán en la etapa 4 desde la tabla de ejercicios personalizados de la exportación.
 
 ### Códigos de etapa de sueño
 

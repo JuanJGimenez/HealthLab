@@ -45,12 +45,29 @@ Niveles del informe de compatibilidad:
 - **Advertencia:** otro cambio en una tabla en uso, o una tabla que MiSalud no conoce.
 - **Información:** cambios en tablas que MiSalud no usa.
 
+## Módulos de la capa de base de datos
+
+| Módulo | Responsabilidad |
+|---|---|
+| `schema` | Describir cada tabla: columnas, tipos y clave de fusión |
+| `database` | Abrir la base, crear el esquema y aplicar las migraciones pendientes |
+| `merge` | Vista previa y fusión con las cuatro reglas, en una transacción; registro de la importación |
+| `backup` | Respaldar la base, conservar los 2 respaldos más recientes y restaurar uno |
+| `exports` | Guardar los zips originales y borrar los que ya no hacen falta |
+| `errors` | Errores propios de la base |
+
+La base guarda su número de versión de esquema. Al abrirla, MiSalud aplica las migraciones que le
+falten, todas juntas o ninguna, y se niega a abrir una base creada por una versión más nueva.
+
+`pipeline.importing` conduce una importación en dos pasos: `prepare_import` lee, transforma y arma
+la vista previa sin guardar ningún registro; `confirm_import` respalda, fusiona y archiva el zip.
+
 ## Flujo de una importación
 
 1. `interface` recibe el zip elegido por el usuario y llama a `pipeline`.
 2. `reading` descomprime, lee y compara cada archivo con su contrato.
 3. `transform` limpia y valida, un dominio por vez. Si uno falla, los demás continúan.
-4. `storage` carga el resultado en una base temporal y lo compara con la real.
+4. `storage` carga el resultado en tablas temporales y lo compara con la base.
 5. `interface` muestra la vista previa. Si el usuario confirma, `storage` respalda y fusiona.
 6. `derived` recalcula `night` y `day`.
 7. `storage` anota la importación y archiva el zip original.
