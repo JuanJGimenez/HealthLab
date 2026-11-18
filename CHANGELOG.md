@@ -3,6 +3,16 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [1.0.0] - 2026-11-18
+
+Primera versión completa. No cambia el código respecto de la 0.13.0.
+
+### Comprobado
+
+- La carpeta se armó en Windows con `release\build_windows.bat`: la autoverificación terminó en
+  `RESULT: OK`, la ventana abrió, importó una exportación y mostró las vistas. No hubo avisos de
+  Windows ni del antivirus. Era lo único pendiente desde la etapa 9 (decisión 62).
+
 ## [0.13.0] - 2026-11-18
 
 Etapa 10a: refinamiento del código. Sin cambios en lo que la app muestra o guarda.

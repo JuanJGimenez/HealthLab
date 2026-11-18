@@ -10,7 +10,7 @@ The code is organised in layers. A layer may import only the layers listed befor
 
 from typing import Final
 
-__version__: Final = "0.13.0"
+__version__: Final = "1.0.0"
 
 LAYERS: Final = (
     "config",

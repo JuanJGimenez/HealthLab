@@ -8,14 +8,13 @@ Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica
 
 ## Estado
 
-Versión 0.13.0 (etapas 1 a 9, el plan completo, más la etapa 10a de refinamiento). Importa una exportación con vista previa, fusiona
-sin perder datos, muestra seis vistas, el detalle de cada noche con ocho pistas y la comparación de
-dos noches, y permite etiquetar fechas y filtrar por etiqueta. Tiene además la pantalla de un día
-y el día típico por hora, y genera el informe para el médico en PDF, con bloques opcionales. En
-español o en inglés. Se entrega como una carpeta portátil para Windows.
+Versión 1.0.0. Importa una exportación con vista previa, fusiona sin perder datos, muestra seis
+vistas, el detalle de cada noche con ocho pistas y la comparación de dos noches, y permite
+etiquetar fechas y filtrar por etiqueta. Tiene además la pantalla de un día y el día típico por
+hora, y genera el informe para el médico en PDF, con bloques opcionales. En español o en inglés.
+Se entrega como una carpeta portátil para Windows.
 
-Pendiente: armar la carpeta en Windows y abrir la ventana por primera vez. Hasta acá se armó y
-se verificó en Linux. Cuando esa prueba esté hecha, la versión pasa a 1.0.0.
+La carpeta se armó en Windows y la app se probó ahí el 18 de noviembre de 2026.
 
 ## Usar la app
 

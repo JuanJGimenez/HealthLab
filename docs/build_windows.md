@@ -95,8 +95,9 @@ programa.
 | `release/launcher.py` | El punto de entrada del programa. |
 | `release/misalud.ico` | El ícono. `release/make_icon.py` lo vuelve a dibujar. |
 
-## Límite conocido
+## Estado de la comprobación
 
-La carpeta se armó y se verificó en Linux, incluida una importación completa de una exportación
-real. El armado en Windows y la primera apertura de la ventana todavía no se probaron: se
-comprueban la primera vez que se ejecuta este procedimiento.
+El procedimiento se ejecutó en Windows el 18 de noviembre de 2026: el armado terminó con
+`RESULT: OK`, la ventana abrió, importó una exportación y mostró las vistas, sin avisos de Windows
+ni del antivirus. Antes se había armado y verificado en Linux, con una importación completa de una
+exportación real.
