@@ -3,6 +3,25 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [0.13.0] - 2026-11-18
+
+Etapa 10a: refinamiento del código. Sin cambios en lo que la app muestra o guarda.
+
+### Cambiado
+
+- `tracks_chart` (gráfico de una noche en el informe) pasó de 91 a 53 líneas de código: el
+  dibujo de barras, líneas de nivel y etiquetas de hora quedó en funciones propias.
+- `expand_details` (lectura de los archivos de detalle) delega la lectura de cada archivo.
+- `create_report` delega la lectura del formulario del informe.
+- El control de calidad rechaza una función con complejidad mayor a 10 o con más de 40
+  instrucciones.
+
+### Comprobado
+
+- El informe completo con datos reales sale idéntico, página por página, antes y después.
+- La importación de la exportación real de noviembre da la misma cantidad de registros en todas
+  las tablas.
+
 ## [0.12.0] - 2026-11-15
 
 Etapa 9 del plan: empaquetado para Windows y manual de uso. Cierra el plan.

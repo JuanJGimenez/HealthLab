@@ -333,6 +333,31 @@ def parse_day(values: pd.Series[str]) -> pd.Series[pd.Timestamp]:
     return parse_utc(values).dt.normalize()
 
 
+def _read_measurements(source: Source, samsung_table: str, file_name: str) -> tuple[list[Any], str]:
+    """Read the measurements of one detail file.
+
+    Args:
+        source: The export.
+        samsung_table: Samsung table the file belongs to.
+        file_name: Name of the detail file.
+
+    Returns:
+        The measurements that carry a ``start_time``, and the validation rule
+        that explains why there are none: empty when there are measurements.
+    """
+    try:
+        content = source.detail(samsung_table, file_name)
+    except DetailFileError:
+        return [], "detail_file_unreadable"
+    items = [item for item in content if "start_time" in item] if isinstance(content, list) else []
+    return items, "" if items else "detail_file_empty"
+
+
+def _joined(parts: list[pd.DatetimeIndex]) -> pd.DatetimeIndex:
+    """Return the moments of every part as one index, in order."""
+    return pd.DatetimeIndex(parts[0].append(parts[1:])) if parts else pd.DatetimeIndex([])
+
+
 def expand_details(
     source: Source,
     parents: pd.DataFrame,
@@ -376,16 +401,9 @@ def expand_details(
     columns: dict[str, list[Any]] = {name: [] for name in fields.values()}
     rows = parents.loc[parents[file_column].notna(), ["samsung_id", "utc_offset_min", file_column]]
     for ident, offset, file_name in rows.itertuples(index=False, name=None):
-        try:
-            content = source.detail(samsung_table, file_name)
-        except DetailFileError:
-            issues.append(ValidationIssue(table, ident, "detail_file_unreadable", file_name, KEPT))
-            continue
-        items = (
-            [item for item in content if "start_time" in item] if isinstance(content, list) else []
-        )
-        if not items:
-            issues.append(ValidationIssue(table, ident, "detail_file_empty", file_name, KEPT))
+        items, problem = _read_measurements(source, samsung_table, file_name)
+        if problem:
+            issues.append(ValidationIssue(table, ident, problem, file_name, KEPT))
             continue
         parent_ids.extend([ident] * len(items))
         utc_starts.append(epoch_ms_to_local((item["start_time"] for item in items), 0))
@@ -396,11 +414,10 @@ def expand_details(
             columns[name].extend(item.get(key) for item in items)
 
     result = pd.DataFrame({"parent_id": pd.Series(parent_ids, dtype="string")})
-    empty = pd.DatetimeIndex([])
-    result["start_utc"] = utc_starts[0].append(utc_starts[1:]) if utc_starts else empty
-    result["start_at"] = starts[0].append(starts[1:]) if starts else empty
+    result["start_utc"] = _joined(utc_starts)
+    result["start_at"] = _joined(starts)
     if with_end:
-        result["end_at"] = ends[0].append(ends[1:]) if ends else empty
+        result["end_at"] = _joined(ends)
     for name, values in columns.items():
         result[name] = pd.to_numeric(pd.Series(values, dtype="object"), errors="coerce").astype(
             "float64"

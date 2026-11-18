@@ -8,7 +8,7 @@ Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica
 
 ## Estado
 
-Versión 0.12.0 (etapas 1 a 9: el plan completo). Importa una exportación con vista previa, fusiona
+Versión 0.13.0 (etapas 1 a 9, el plan completo, más la etapa 10a de refinamiento). Importa una exportación con vista previa, fusiona
 sin perder datos, muestra seis vistas, el detalle de cada noche con ocho pistas y la comparación de
 dos noches, y permite etiquetar fechas y filtrar por etiqueta. Tiene además la pantalla de un día
 y el día típico por hora, y genera el informe para el médico en PDF, con bloques opcionales. En
@@ -58,7 +58,7 @@ pytest
 | Herramienta | Qué revisa |
 |---|---|
 | `ruff format` | Formato uniforme del código |
-| `ruff check` | Estilo, errores comunes y documentación de cada función |
+| `ruff check` | Estilo, errores comunes, documentación de cada función y sus límites de tamaño: complejidad 10 y 40 instrucciones |
 | `mypy` | Tipos, en modo estricto |
 | `pytest` | Pruebas automáticas, con medición de cobertura |
 

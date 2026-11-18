@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "misalud"
-version = "0.12.0"
+version = "0.13.0"
 description = "Local desktop app that accumulates and analyses Samsung Health exports."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -50,14 +50,22 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 # E/W: pycodestyle, F: pyflakes, I: import order, N: naming, D: docstrings,
 # UP: modern syntax, B: likely bugs, SIM: simplifications, PTH: pathlib, RUF: ruff rules.
-select = ["E", "W", "F", "I", "N", "D", "UP", "B", "SIM", "PTH", "RUF"]
+# C90: complexity of a function, PLR0915: statements in a function.
+select = ["E", "W", "F", "I", "N", "D", "UP", "B", "SIM", "PTH", "RUF", "C90", "PLR0915"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-statements = 40
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 # Test functions are documented by their names; module docstrings stay mandatory.
-"tests/**" = ["D103"]
+# An end-to-end test is one long scenario, so the statement limit does not apply.
+"tests/**" = ["D103", "PLR0915"]
 
 [tool.mypy]
 strict = true

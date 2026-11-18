@@ -327,6 +327,68 @@ def _hours(moment: str, start: datetime) -> float:
     return (datetime.fromisoformat(moment) - start).total_seconds() / 3600
 
 
+LANE_HEIGHT = 52.0
+LANE_GAP = 20.0
+LANE_LABEL_SPACE = 18.0
+OXYGEN_LIMIT = 90
+"""Saturation under which a stretch counts as low; drawn as a dashed line."""
+
+
+def _steps(
+    spans: Sequence[tuple[dict[str, Any], float]], start: datetime
+) -> list[tuple[float, float]]:
+    """Return a stepped line: each span holds its value from its start to its end."""
+    return [
+        (_hours(moment, start), value)
+        for span, value in spans
+        for moment in (span["from"], span["to"])
+    ]
+
+
+def _bars(
+    plot: Plot,
+    spans: Sequence[dict[str, Any]],
+    start: datetime,
+    height: float,
+    fill: Any,
+    *,
+    thinnest: float = 0.5,
+) -> None:
+    """Draw one filled bar per time span, standing on the base of the lane.
+
+    A span shorter than ``thinnest`` points is widened to it, so it stays visible.
+    """
+    for span in spans:
+        left, right = plot.x(_hours(span["from"], start)), plot.x(_hours(span["to"], start))
+        width = max(right - left, thinnest)
+        plot.drawing.add(Rect(left, plot.bottom, width, height, fillColor=fill, strokeColor=None))
+
+
+def _level_line(plot: Plot, y: float, *, color: Any, dashed: bool = False) -> None:
+    """Draw a horizontal line across the lane at a height in points."""
+    plot.drawing.add(
+        Line(
+            plot.left,
+            y,
+            plot.left + plot.plot_width,
+            y,
+            strokeColor=color,
+            strokeWidth=0.5,
+            strokeDashArray=[3, 2] if dashed else None,
+        )
+    )
+
+
+def _hour_labels(plot: Plot, start: datetime, length: float) -> None:
+    """Label each full clock hour of the night under the lane."""
+    first = ((60 - start.minute) % 60) / 60
+    for hour in range(math.floor(length) + 1):
+        position = hour + first
+        if position <= length:
+            clock = (start.hour + hour + (1 if start.minute else 0)) % 24
+            plot.x_label(position, f"{clock:02d}:00")
+
+
 def tracks_chart(detail: dict[str, Any], names: Sequence[str], *, width: float) -> Drawing:
     """Draw the four main tracks of one night on a shared time axis.
 
@@ -337,7 +399,7 @@ def tracks_chart(detail: dict[str, Any], names: Sequence[str], *, width: float) 
     Args:
         detail: Result of ``night_detail``.
         names: Titles of the four tracks, then of the four stages from deep to
-            awake (eight texts).
+            awake, then the words for "no data" (nine texts).
         width: Width of the drawing, in points.
 
     Returns:
@@ -346,91 +408,53 @@ def tracks_chart(detail: dict[str, Any], names: Sequence[str], *, width: float) 
     night, tracks = detail["night"], detail["tracks"]
     start = datetime.fromisoformat(night["start_at"])
     length = max(_hours(night["end_at"], start), 0.5)
-    lane, gap, label_space = 52.0, 20.0, 18.0
-    height = 4 * (lane + gap) + label_space
-    drawing = Drawing(width, height)
+    stages = [(span, float(STAGE_LEVELS.get(span["code"], 1))) for span in tracks["stages"]]
     oxygen = [(span, span["lowest"]) for span in tracks["oxygen"] if span["lowest"] is not None]
-    pulse = [(point["at"], point["value"]) for point in tracks["pulse"]]
-    ranges = [
-        (0.0, 3.0, 3),
-        nice_range(min([80.0, *(low for _, low in oxygen)]), 100.0),
-        nice_range(min((v for _, v in pulse), default=40), max((v for _, v in pulse), default=100)),
-        (0.0, 1.0, 1),
+    pulse = [(_hours(point["at"], start), point["value"]) for point in tracks["pulse"]]
+    beats = [value for _, value in pulse]
+    lanes: list[tuple[tuple[float, float, int], Sequence[Any]]] = [
+        ((0.0, 3.0, 3), stages),
+        (nice_range(min([80.0, *(low for _, low in oxygen)]), 100.0), oxygen),
+        (nice_range(min(beats, default=40), max(beats, default=100)), pulse),
+        ((0.0, 1.0, 1), tracks["snoring"]),
     ]
-    for index in range(4):
-        low, high, divisions = ranges[index]
-        offset = height - (index + 1) * (lane + gap)
+    height = len(lanes) * (LANE_HEIGHT + LANE_GAP) + LANE_LABEL_SPACE
+    drawing = Drawing(width, height)
+    plots = []
+    for index, ((low, high, _), content) in enumerate(lanes):
         plot = Plot(
-            width, lane + label_space, (0, length), (low, high), left=44, top=0, bottom=label_space
+            width,
+            LANE_HEIGHT + LANE_LABEL_SPACE,
+            (0, length),
+            (low, high),
+            left=44,
+            top=0,
+            bottom=LANE_LABEL_SPACE,
         )
         plot.drawing = drawing
-        plot.bottom = offset
-        plot.height = offset + lane + 14
-        for span in detail["low_spans"]:
-            left, right = plot.x(_hours(span["from"], start)), plot.x(_hours(span["to"], start))
-            drawing.add(
-                Rect(left, offset, max(right - left, 0.6), lane, fillColor=SHADE, strokeColor=None)
+        plot.bottom = height - (index + 1) * (LANE_HEIGHT + LANE_GAP)
+        plot.height = plot.bottom + LANE_HEIGHT + 14
+        _bars(plot, detail["low_spans"], start, LANE_HEIGHT, SHADE, thinnest=0.6)
+        title = names[index] + ("" if content else f" · {names[8]}")
+        drawing.add(
+            String(
+                2, plot.bottom + LANE_HEIGHT + 9, title, fontName=FONT, fontSize=7.5, fillColor=INK
             )
-        if index == 0:
-            plot.grid(3, labels=list(names[4:8]))
-            steps = [
-                (_hours(moment, start), float(STAGE_LEVELS.get(span["code"], 1)))
-                for span in tracks["stages"]
-                for moment in (span["from"], span["to"])
-            ]
-            plot.line(steps, 0, 0.9)
-        elif index == 1:
-            plot.grid(divisions)
-            steps = [
-                (_hours(moment, start), low)
-                for span, low in oxygen
-                for moment in (span["from"], span["to"])
-            ]
-            plot.line(steps, 0, 0.9)
-            drawing.add(
-                Line(
-                    plot.left,
-                    plot.y(90),
-                    plot.left + plot.plot_width,
-                    plot.y(90),
-                    strokeColor=INK,
-                    strokeWidth=0.5,
-                    strokeDashArray=[3, 2],
-                )
-            )
-        elif index == 2:
-            plot.grid(divisions)
-            plot.line([(_hours(moment, start), value) for moment, value in pulse], 1, 0.7)
-        else:
-            drawing.add(
-                Line(
-                    plot.left,
-                    offset,
-                    plot.left + plot.plot_width,
-                    offset,
-                    strokeColor=GRID,
-                    strokeWidth=0.5,
-                )
-            )
-            for span in tracks["snoring"]:
-                left, right = plot.x(_hours(span["from"], start)), plot.x(_hours(span["to"], start))
-                drawing.add(
-                    Rect(
-                        left,
-                        offset,
-                        max(right - left, 0.5),
-                        lane * 0.7,
-                        fillColor=GREEN,
-                        strokeColor=None,
-                    )
-                )
-        empty = not (tracks["stages"], oxygen, pulse, tracks["snoring"])[index]
-        title = names[index] + (f" · {names[8]}" if empty else "")
-        drawing.add(String(2, offset + lane + 9, title, fontName=FONT, fontSize=7.5, fillColor=INK))
-        if index == 3:
-            for hour in range(math.floor(length) + 1):
-                clock = (start.hour + hour + (1 if start.minute else 0)) % 24
-                position = hour + ((60 - start.minute) % 60) / 60
-                if position <= length:
-                    plot.x_label(position, f"{clock:02d}:00")
+        )
+        plots.append(plot)
+    stage_plot, oxygen_plot, pulse_plot, snoring_plot = plots
+
+    stage_plot.grid(3, labels=list(names[4:8]))
+    stage_plot.line(_steps(stages, start), 0, 0.9)
+
+    oxygen_plot.grid(lanes[1][0][2])
+    oxygen_plot.line(_steps(oxygen, start), 0, 0.9)
+    _level_line(oxygen_plot, oxygen_plot.y(OXYGEN_LIMIT), color=INK, dashed=True)
+
+    pulse_plot.grid(lanes[2][0][2])
+    pulse_plot.line(pulse, 1, 0.7)
+
+    _level_line(snoring_plot, snoring_plot.bottom, color=GRID)
+    _bars(snoring_plot, tracks["snoring"], start, LANE_HEIGHT * 0.7, GREEN)
+    _hour_labels(snoring_plot, start, length)
     return drawing

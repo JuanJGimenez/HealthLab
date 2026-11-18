@@ -74,6 +74,51 @@ def _safely(method: Callable[..., Record]) -> Callable[..., Record]:
     return wrapper
 
 
+def _text(value: Any) -> str | None:
+    """Return a form value as trimmed text, or ``None`` when it is blank."""
+    return str(value or "").strip() or None
+
+
+def _whole(value: Any) -> int | None:
+    """Return a form value as a whole number, or ``None`` when it is blank."""
+    return int(value) if value else None
+
+
+def _decimal(value: Any) -> float | None:
+    """Return a form value as a number, or ``None`` when it is blank."""
+    return float(value) if value else None
+
+
+def _personal_data(options: dict[str, Any], this_year: int) -> PersonalData:
+    """Read the personal data of the report form.
+
+    Args:
+        options: What the page sent; any field may be missing or blank.
+        this_year: Year used to turn the birth year into an age.
+    """
+    birth_year = _whole(options.get("birth_year"))
+    return PersonalData(
+        name=_text(options.get("name")),
+        age=this_year - birth_year if birth_year else None,
+        sex=_text(options.get("sex")),
+        height_cm=_decimal(options.get("height_cm")),
+        weight_kg=_decimal(options.get("weight_kg")),
+    )
+
+
+def _crosses(options: dict[str, Any], texts: dict[str, str]) -> tuple[Cross, ...]:
+    """Read the pairs of metrics of the "day and night" block, with their names."""
+    return tuple(
+        Cross(x, y, texts[f"metric.{x}"], texts[f"metric.{y}"])
+        for x, y in options.get("crosses") or ()
+    )
+
+
+def _detail_nights(options: dict[str, Any]) -> tuple[date, ...]:
+    """Read the nights to show track by track, skipping the blank choices."""
+    return tuple(date.fromisoformat(day) for day in options.get("detail_nights") or () if day)
+
+
 class Api:
     """The methods the window calls.
 
@@ -399,22 +444,13 @@ class Api:
         with self._open() as connection:
             personal = None
             if options.get("include_personal"):
-                year = options.get("birth_year")
-                height = options.get("height_cm")
-                weight = options.get("weight_kg")
+                personal = _personal_data(options, now.year)
                 profile_store.save_profile(
                     connection,
                     name=options.get("name"),
-                    birth_year=int(year) if year else None,
+                    birth_year=_whole(options.get("birth_year")),
                     sex=options.get("sex"),
-                    height_cm=float(height) if height else None,
-                )
-                personal = PersonalData(
-                    name=str(options.get("name") or "").strip() or None,
-                    age=now.year - int(year) if year else None,
-                    sex=str(options.get("sex") or "").strip() or None,
-                    height_cm=float(height) if height else None,
-                    weight_kg=float(weight) if weight else None,
+                    height_cm=personal.height_cm,
                 )
             scope = self._scope(connection, period, "all")
             report = ReportOptions(
@@ -424,13 +460,8 @@ class Api:
                 watch_model=watch or None,
                 personal=personal,
                 blocks=tuple(options.get("blocks") or ()),
-                crosses=tuple(
-                    Cross(x, y, texts[f"metric.{x}"], texts[f"metric.{y}"])
-                    for x, y in options.get("crosses") or ()
-                ),
-                detail_nights=tuple(
-                    date.fromisoformat(day) for day in options.get("detail_nights") or () if day
-                ),
+                crosses=_crosses(options, texts),
+                detail_nights=_detail_nights(options),
             )
             content = gather_report(connection, report)
         pages = render_pdf(content, target)

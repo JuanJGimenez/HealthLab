@@ -72,6 +72,8 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 64 | La instalación y la actualización se hacen con un comando que reemplaza solo el programa (`MiSalud.exe`, `_internal`, `Manual.md`) y nunca toca `data` | Evita el único error grave posible al actualizar a mano: pisar la carpeta de datos |
 | 65 | El ejecutable no se comprime (sin UPX) y no lleva firma | La compresión aumenta las falsas alarmas de los antivirus; la firma exige un certificado pago y el aviso de Windows aparece una sola vez |
 | 66 | Un error al abrir se guarda en `data/logs/error.log` y se muestra en un cuadro de mensaje | Un programa de escritorio no tiene consola: sin esto, un fallo al abrir no dejaría rastro |
+| 67 | Ninguna función puede superar una complejidad de 10 ni 40 instrucciones; lo controla `ruff` | Una revisión de diseño señaló funciones largas; el límite evita que vuelvan a crecer sin una decisión. Las pruebas quedan fuera del límite de instrucciones |
+| 68 | Las transformaciones largas pero lineales (`night_signals`, `oxygen`) no se dividen | Enumeran columnas y reglas en orden, sin decisiones; partirlas agregaría saltos sin hacerlas más claras |
 
 ## Notas
 
@@ -90,4 +92,5 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisiones 55 a 58.** Tomadas en la etapa 8a y aprobadas por el usuario el 15 de noviembre de 2026. Sobre la 56, el usuario preguntó por qué la ventana no guardaba el PDF: el componente de Edge sí puede, pero la librería de la ventana no ofrece una forma documentada de pedírselo; se mantuvo el PDF armado en Python.
 - **Decisiones 59 a 61.** Tomadas en la etapa 8b y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 62 a 66.** Tomadas en la etapa 9; pendientes de la confirmación del usuario.
+- **Decisiones 67 y 68.** Tomadas en la etapa 10a, a partir de una revisión de diseño que trajo el usuario el 18 de noviembre de 2026; pendientes de su confirmación.
 - **Esquema.** La etapa 4 agregó la tabla `exercise_custom_type` a la versión 1 del esquema, sin migración, porque todavía no existe ninguna base en uso. Desde la primera entrega que el usuario instale, todo cambio de esquema irá por migración.
