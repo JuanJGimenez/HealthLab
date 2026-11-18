@@ -29,6 +29,7 @@ from reportlab.platypus import (
 
 import misalud
 from misalud.config import THRESHOLDS
+from misalud.queries.night_detail import NightDetail
 from misalud.reports.charts import GRID, INK, MUTED, category_chart, timeline_chart
 from misalud.reports.content import BLOCKS, PersonalData, ReportContent
 from misalud.reports.plots import line_chart, points_chart, stacked_chart, tracks_chart
@@ -569,7 +570,7 @@ BLOCK_BUILDERS: dict[str, Callable[[Any, ReportTexts], list[Any]]] = {
 }
 
 
-def _detail(detail: dict[str, Any], texts: ReportTexts) -> list[Any]:
+def _detail(detail: NightDetail, texts: ReportTexts) -> list[Any]:
     """Build the page of one night shown track by track."""
     words, night = texts.words, detail["night"]
     valid = night["has_valid_oxygen"]

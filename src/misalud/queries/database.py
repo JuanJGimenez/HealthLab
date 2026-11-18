@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TypedDict, cast
+
 from misalud.queries.common import Record, records
 from misalud.storage.database import Connection
 from misalud.storage.schema import DETAIL_TABLES
@@ -56,14 +58,25 @@ def table_sizes(connection: Connection) -> list[Record]:
     return records(connection, " UNION ALL ".join(selects) + ' ORDER BY "table"')
 
 
-def data_period(connection: Connection) -> Record:
+class DataPeriod(TypedDict):
+    """The stretch of time the database covers. Dates are ISO texts."""
+
+    first_night: str | None
+    last_night: str | None
+    nights: int
+    first_day: str | None
+    last_day: str | None
+    days: int
+
+
+def data_period(connection: Connection) -> DataPeriod:
     """Return the first and last night and day available, to bound the date filters.
 
     Returns:
         ``first_night``, ``last_night``, ``nights``, ``first_day``, ``last_day``
         and ``days``; dates are ``None`` while the database is empty.
     """
-    return records(
+    row = records(
         connection,
         """SELECT
             (SELECT min(night_date) FROM night) AS first_night,
@@ -73,6 +86,7 @@ def data_period(connection: Connection) -> Record:
             (SELECT max(day) FROM day) AS last_day,
             (SELECT count(*) FROM day) AS days""",
     )[0]
+    return cast(DataPeriod, row)
 
 
 def issue_summary(connection: Connection) -> list[Record]:

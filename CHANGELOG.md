@@ -3,6 +3,27 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [1.0.1] - 2026-11-18
+
+Etapa 10b: el acuerdo entre Python y la página queda escrito y se verifica solo. Sin cambios en
+lo que la app muestra o guarda.
+
+### Agregado
+
+- `interface/answers.py` declara la forma de la respuesta de cada uno de los 28 métodos que la
+  página puede llamar. Las consultas que arman respuestas compuestas (una noche, un día, una
+  relación, una comparación con y sin etiqueta) declaran la suya.
+- El control de tipos compara esas declaraciones con el código.
+- En las pruebas, cada respuesta real se compara con su declaración, a cualquier profundidad.
+- La prueba de punta a punta registra todo campo que la página lea y Python no haya enviado, y
+  falla si hay alguno.
+- Una prueba verifica que la página solo llame métodos que existen y que los use todos.
+
+### Corregido
+
+- La comparación de dos noches leía un campo `value` en pistas que no lo tienen (oxígeno,
+  ronquido y etapas). No cambiaba el gráfico; lo detectó la verificación nueva.
+
 ## [1.0.0] - 2026-11-18
 
 Primera versión completa. No cambia el código respecto de la 0.13.0.

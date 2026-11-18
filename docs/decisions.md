@@ -74,6 +74,9 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 | 66 | Un error al abrir se guarda en `data/logs/error.log` y se muestra en un cuadro de mensaje | Un programa de escritorio no tiene consola: sin esto, un fallo al abrir no dejaría rastro |
 | 67 | Ninguna función puede superar una complejidad de 10 ni 40 instrucciones; lo controla `ruff` | Una revisión de diseño señaló funciones largas; el límite evita que vuelvan a crecer sin una decisión. Las pruebas quedan fuera del límite de instrucciones |
 | 68 | Las transformaciones largas pero lineales (`night_signals`, `oxygen`) no se dividen | Enumeran columnas y reglas en orden, sin decisiones; partirlas agregaría saltos sin hacerlas más claras |
+| 69 | La forma de cada respuesta del puente con la página se declara en un módulo (`answers`), y las consultas que arman respuestas compuestas declaran la suya | Una revisión de diseño señaló que el puente devolvía diccionarios sin forma; así el control de tipos avisa si el código y la declaración se separan |
+| 70 | Las filas que salen directo de una consulta no se declaran campo por campo | Sus columnas ya están en el diccionario de datos y el control de tipos no puede verificar el resultado de una consulta; las cubre la prueba que registra lo que la página lee |
+| 71 | El acuerdo con la página se verifica en las pruebas existentes, no en pruebas aparte | Cada prueba de la interfaz pasa a ser también una prueba del acuerdo, sin mantener una lista paralela de casos |
 
 ## Notas
 
@@ -93,5 +96,6 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisiones 59 a 61.** Tomadas en la etapa 8b y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 62 a 66.** Tomadas en la etapa 9; pendientes de la confirmación del usuario.
 - **Decisión 62.** Cumplida el 18 de noviembre de 2026: el usuario armó la carpeta en Windows, la ventana abrió, importó y mostró las vistas, sin avisos de Windows ni del antivirus. La versión pasó a 1.0.0.
+- **Decisiones 69 a 71.** Tomadas en la etapa 10b; pendientes de la confirmación del usuario.
 - **Decisiones 67 y 68.** Tomadas en la etapa 10a, a partir de una revisión de diseño que trajo el usuario el 18 de noviembre de 2026; pendientes de su confirmación.
 - **Esquema.** La etapa 4 agregó la tabla `exercise_custom_type` a la versión 1 del esquema, sin migración, porque todavía no existe ninguna base en uso. Desde la primera entrega que el usuario instale, todo cambio de esquema irá por migración.

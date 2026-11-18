@@ -8,7 +8,7 @@ Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica
 
 ## Estado
 
-Versión 1.0.0. Importa una exportación con vista previa, fusiona sin perder datos, muestra seis
+Versión 1.0.1. Importa una exportación con vista previa, fusiona sin perder datos, muestra seis
 vistas, el detalle de cada noche con ocho pistas y la comparación de dos noches, y permite
 etiquetar fechas y filtrar por etiqueta. Tiene además la pantalla de un día y el día típico por
 hora, y genera el informe para el médico en PDF, con bloques opcionales. En español o en inglés.

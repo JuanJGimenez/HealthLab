@@ -16,8 +16,9 @@ import pytest
 import misalud
 from misalud.config import Paths
 from misalud.interface.api import Api
+from tests.support.contract import checked
 from tests.support.fake_dialogs import FakeDialogs
-from tests.support.page_bridge import api_methods, open_page
+from tests.support.page_bridge import api_methods, missing_reads, open_page
 from tests.support.synthetic_export import build_export
 
 playwright = pytest.importorskip("playwright.sync_api")
@@ -58,7 +59,7 @@ def test_from_an_empty_app_to_a_dashboard_in_two_languages(
     browser: Any, tmp_path: Path, export_archive: Path
 ) -> None:
     dialogs = FakeDialogs(export=export_archive, save=tmp_path / "nights.csv")
-    api = Api(Paths(tmp_path / "app"), dialogs)
+    api = checked(Api(Paths(tmp_path / "app"), dialogs))
     page = browser.new_page(
         viewport={"width": 1280, "height": 900}, timezone_id="America/Argentina/Buenos_Aires"
     )
@@ -223,4 +224,5 @@ def test_from_an_empty_app_to_a_dashboard_in_two_languages(
     assert api.bootstrap()["language"] == "en"
 
     assert problems == []
+    assert missing_reads(page) == []
     page.close()

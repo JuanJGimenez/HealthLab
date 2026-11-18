@@ -14,6 +14,7 @@ from misalud.interface import api as api_module
 from misalud.interface.api import Api
 from misalud.interface.settings import Settings, load_settings
 from misalud.storage.backup import list_backups
+from tests.support.contract import checked
 from tests.support.fake_dialogs import FakeDialogs
 from tests.support.synthetic_export import build_export
 
@@ -38,7 +39,7 @@ def dialogs() -> FakeDialogs:
 @pytest.fixture
 def api(tmp_path: Path, dialogs: FakeDialogs) -> Api:
     """The bridge over an empty app folder."""
-    return Api(Paths(tmp_path / "app"), dialogs)
+    return checked(Api(Paths(tmp_path / "app"), dialogs))
 
 
 def do_import(api: Api, dialogs: FakeDialogs, tmp_path: Path, days: int) -> dict[str, Any]:

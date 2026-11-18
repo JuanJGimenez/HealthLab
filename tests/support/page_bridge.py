@@ -13,11 +13,42 @@ from misalud.interface.api import Api
 from misalud.interface.window import WEB_DIR
 
 BRIDGE_SCRIPT = """
+// Fields the page read from an answer although Python never sent them.
+window.misaludMissingReads = [];
+const watched = (value, path) => {
+  if (value === null || typeof value !== 'object') return value;
+  return new Proxy(value, {
+    get(target, key) {
+      if (typeof key !== 'string') return target[key];
+      const isArray = Array.isArray(target);
+      if (!(key in target)) {
+        // Past the end of a list, or a method of an object, is not a field.
+        if (!isArray && key !== 'then' && key !== 'toJSON') {
+          window.misaludMissingReads.push(path + '.' + key);
+        }
+        return undefined;
+      }
+      return watched(target[key], isArray ? path + '[]' : path + '.' + key);
+    },
+  });
+};
 window.pywebview = {api: {}};
 for (const name of %s) {
-  window.pywebview.api[name] = (...args) => window['misalud_' + name](...args);
+  window.pywebview.api[name] = async (...args) =>
+    watched(await window['misalud_' + name](...args), name);
 }
 """
+
+
+def missing_reads(page: Any) -> list[str]:
+    """Return the fields the page read from an answer that Python did not send.
+
+    Every answer handed to the page is watched: reading a field that is not in
+    it is recorded as ``method.path.field``. A field the page reads but Python
+    renamed or dropped shows up here.
+    """
+    found: list[str] = page.evaluate("[...new Set(window.misaludMissingReads)].sort()")
+    return found
 
 
 def api_methods(api: Api) -> list[str]:

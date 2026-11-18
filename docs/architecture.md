@@ -104,6 +104,7 @@ que las pistas: sumar un bloque no obliga a tocar los demás.
 | Módulo | Responsabilidad |
 |---|---|
 | `api` | Lo único que la página puede pedirle a Python: datos de cada vista, importación en dos pasos, panel de la base, idioma y tema |
+| `answers` | La forma declarada de la respuesta de cada método de `api` |
 | `i18n` y `locales/` | Los textos, un archivo por idioma (`es.json`, `en.json`) |
 | `settings` | Recordar el idioma y el tema en `data/settings.json` |
 | `window` | Abrir la ventana con pywebview y mostrar los selectores de archivo |
@@ -118,6 +119,22 @@ Reglas de la interfaz:
 - Ninguna frase está escrita en la página: todas salen de los archivos de idioma. Una prueba
   revisa que los dos idiomas tengan los mismos textos y que la página no pida ninguno que falte.
 - La ventana no abre puertos ni se conecta a internet.
+
+### El acuerdo entre Python y la página
+
+La página es JavaScript y lee cada respuesta por el nombre de sus campos. Para que un campo
+renombrado o faltante no aparezca recién en la pantalla, el acuerdo tiene una forma escrita y
+tres controles:
+
+| Control | Qué compara | Cuándo corre |
+|---|---|---|
+| Control de tipos (`mypy`) | El código de `api` y de las consultas con las formas declaradas en `answers` | En cada control de calidad |
+| `tests/support/contract.py` | Cada respuesta real con su forma declarada, a cualquier profundidad | En todas las pruebas de la interfaz |
+| Lecturas faltantes | Cada campo que la página lee con lo que Python envió | En la prueba de punta a punta |
+
+Las filas que salen directo de una consulta (una noche, un mes, una importación) se declaran como
+registros simples: sus columnas están en `data_dictionary.md` y el tercer control cubre las que la
+página usa.
 
 Cómo se prueba: `tests/test_interface_api.py` cubre cada método de `api`, y
 `tests/test_interface_page.py` abre la página en un navegador real (Playwright) y recorre el camino

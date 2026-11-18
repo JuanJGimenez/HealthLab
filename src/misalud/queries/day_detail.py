@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date, datetime, time, timedelta
 from types import MappingProxyType
-from typing import Any, Final
+from typing import Final, TypedDict
 
 from misalud.queries.common import ALL_TIME, Period, Record, records
 from misalud.storage.database import Connection
@@ -76,7 +76,16 @@ DAY_TRACKS: Final[MappingProxyType[str, Track]] = MappingProxyType(
 """The five tracks of a day, by name, in display order."""
 
 
-def day_detail(connection: Connection, day: date) -> dict[str, Any] | None:
+class DayDetail(TypedDict):
+    """One day with its tracks and its neighbours."""
+
+    day: Record
+    tracks: dict[str, list[Record]]
+    previous: str | None
+    next: str | None
+
+
+def day_detail(connection: Connection, day: date) -> DayDetail | None:
     """Return one day with its tracks and its neighbours.
 
     Args:
@@ -103,7 +112,8 @@ def day_detail(connection: Connection, day: date) -> dict[str, Any] | None:
     return {
         "day": found[0],
         "tracks": {name: track(connection, start, end) for name, track in DAY_TRACKS.items()},
-        **neighbours,
+        "previous": neighbours["previous"],
+        "next": neighbours["next"],
     }
 
 

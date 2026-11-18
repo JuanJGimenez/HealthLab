@@ -8,7 +8,7 @@ convention as the ``night`` table. Nothing here is ever written by an import.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
+from typing import Any, TypedDict
 
 from misalud.storage.database import Connection
 from misalud.storage.schema import NOTE_TAG_KEY
@@ -47,7 +47,14 @@ def _note_tag_id(connection: Connection) -> int:
     return int(rows[0][0])
 
 
-def day_annotations(connection: Connection, day: date) -> dict[str, Any]:
+class DayAnnotations(TypedDict):
+    """What the user noted about one date."""
+
+    tags: list[int]
+    note: str | None
+
+
+def day_annotations(connection: Connection, day: date) -> DayAnnotations:
     """Return what the user noted about a date.
 
     Args:

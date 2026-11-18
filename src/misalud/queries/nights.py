@@ -12,7 +12,7 @@ import io
 from collections.abc import Sequence
 from dataclasses import replace
 from types import MappingProxyType
-from typing import Final
+from typing import Final, TypedDict, cast
 
 import pandas as pd
 
@@ -335,13 +335,39 @@ def nights_by_weekday(
     )
 
 
+class Relation(TypedDict):
+    """Two metrics paired night by night, with how they move together."""
+
+    points: list[Record]
+    nights: int
+    spearman: float | None
+    enough_nights: bool
+
+
+class GroupFigures(TypedDict):
+    """Figures of the nights on one side of a with-and-without comparison."""
+
+    nights: int
+    nights_with_oxygen: int
+    median_low_minutes: float | None
+    average_low_minutes: float | None
+    average_night_hr: float | None
+    median_hrv_ms: float | None
+    enough_nights: bool
+
+
+# Functional form: ``with`` is a reserved word and cannot be a class attribute.
+TagComparison = TypedDict("TagComparison", {"with": GroupFigures, "without": GroupFigures})
+"""The nights whose date carries a tag, beside the nights whose date does not."""
+
+
 def relate(
     connection: Connection,
     x: str,
     y: str,
     period: Period = ALL_TIME,
     highlight_tag_id: int | None = None,
-) -> Record:
+) -> Relation:
     """Pair two metrics night by night and measure how they move together.
 
     Args:
@@ -394,7 +420,7 @@ def relate(
     }
 
 
-def _group_figures(connection: Connection, scope: NightScope) -> Record:
+def _group_figures(connection: Connection, scope: NightScope) -> GroupFigures:
     """Return the figures of one side of a with-and-without comparison."""
     condition, parameters = scope.condition("night_date")
     figures = records(
@@ -409,10 +435,10 @@ def _group_figures(connection: Connection, scope: NightScope) -> Record:
         parameters,
     )[0]
     figures["enough_nights"] = figures["nights"] >= THRESHOLDS.min_nights_per_group
-    return figures
+    return cast(GroupFigures, figures)
 
 
-def tag_comparison(connection: Connection, tag_id: int, period: Period = ALL_TIME) -> Record:
+def tag_comparison(connection: Connection, tag_id: int, period: Period = ALL_TIME) -> TagComparison:
     """Compare the nights whose date carries a tag with the nights whose date does not.
 
     The number of nights of each group is always part of the answer, and

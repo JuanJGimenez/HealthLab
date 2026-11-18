@@ -9,20 +9,45 @@ message on screen.
 
 from __future__ import annotations
 
+import functools
 import shutil
 import tempfile
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any, Final, Protocol, cast
+from typing import Any, Concatenate, Final, Protocol, cast
 
 import misalud
 from misalud.annotations import profile as profile_store
 from misalud.annotations import store as annotation_store
 from misalud.config import THRESHOLDS, Paths
 from misalud.derived.rebuild import ensure_derived
+from misalud.interface.answers import (
+    AnnotationsAnswer,
+    BootstrapAnswer,
+    CompareAnswer,
+    DashboardAnswer,
+    DatabasePanelAnswer,
+    DateAnswer,
+    DayAnswer,
+    Failure,
+    ImportDoneAnswer,
+    ImportPreviewAnswer,
+    ImportStepAnswer,
+    LanguageAnswer,
+    NightAnswer,
+    NightSide,
+    Nothing,
+    ReportOptionsAnswer,
+    RestoredAnswer,
+    SavedAnswer,
+    TagsAnswer,
+    ThemeAnswer,
+    TracksAnswer,
+    WorstNightsAnswer,
+)
 from misalud.interface.i18n import load_texts
 from misalud.interface.settings import LANGUAGES, THEMES, load_settings, save_settings
 from misalud.pipeline.importing import PreparedImport, confirm_import, prepare_import
@@ -33,6 +58,7 @@ from misalud.queries.common import NightKind, NightScope, Period, Record
 from misalud.queries.coverage import short_window_notices
 from misalud.queries.day_detail import DAY_TRACKS, day_detail, hourly_profile
 from misalud.queries.night_detail import TRACKS, night_detail, night_differences
+from misalud.queries.nights import Relation, TagComparison
 from misalud.reports.content import Cross, PersonalData, ReportOptions, gather_report
 from misalud.reports.pdf import render_pdf
 from misalud.storage.backup import list_backups, restore_backup
@@ -60,17 +86,24 @@ class Dialogs(Protocol):
         ...
 
 
-def _safely(method: Callable[..., Record]) -> Callable[..., Record]:
-    """Turn any failure of an ``Api`` method into an error answer."""
+def _safely[**P](
+    method: Callable[Concatenate[Api, P], Mapping[str, object]],
+) -> Callable[Concatenate[Api, P], Record]:
+    """Turn any failure of an ``Api`` method into an error answer.
 
-    def wrapper(self: Api, *args: Any) -> Record:
+    The method declares the shape of its answer (see ``answers``); the page
+    receives that answer plus ``ok``, or a ``Failure``. The undecorated method
+    stays reachable as ``__wrapped__``, so the tests can read the declared shape.
+    """
+
+    @functools.wraps(method)
+    def wrapper(self: Api, /, *args: P.args, **kwargs: P.kwargs) -> Record:
         try:
-            return {"ok": True, **method(self, *args)}
+            return {"ok": True, **method(self, *args, **kwargs)}
         except Exception as error:
-            return {"ok": False, "error": f"{type(error).__name__}: {error}"}
+            failure: Failure = {"ok": False, "error": f"{type(error).__name__}: {error}"}
+            return dict(failure)
 
-    wrapper.__name__ = method.__name__
-    wrapper.__doc__ = method.__doc__
     return wrapper
 
 
@@ -174,7 +207,7 @@ class Api:
             self._work_dir = None
 
     @_safely
-    def bootstrap(self) -> Record:
+    def bootstrap(self) -> BootstrapAnswer:
         """Return what the page needs to start: texts, settings and what data exists."""
         settings = load_settings(self._paths.data_dir)
         with self._open() as connection:
@@ -198,7 +231,7 @@ class Api:
         }
 
     @_safely
-    def set_language(self, language: str) -> Record:
+    def set_language(self, language: str) -> LanguageAnswer:
         """Change the interface language and return its texts."""
         texts = load_texts(language)
         settings = load_settings(self._paths.data_dir)
@@ -206,7 +239,7 @@ class Api:
         return {"language": language, "texts": texts}
 
     @_safely
-    def set_theme(self, theme: str) -> Record:
+    def set_theme(self, theme: str) -> ThemeAnswer:
         """Remember the colour theme."""
         if theme not in THEMES:
             msg = f"unknown theme: {theme}"
@@ -216,7 +249,7 @@ class Api:
         return {"theme": theme}
 
     @_safely
-    def set_tracks(self, tracks: list[str]) -> Record:
+    def set_tracks(self, tracks: list[str]) -> TracksAnswer:
         """Remember which tracks the "one night" screen shows."""
         unknown = sorted(set(tracks) - set(TRACKS))
         if unknown:
@@ -228,7 +261,7 @@ class Api:
         return {"shown_tracks": list(shown)}
 
     @_safely
-    def night(self, night_date: str) -> Record:
+    def night(self, night_date: str) -> NightAnswer:
         """Return one night with its tracks, its neighbours and what the user noted."""
         day = date.fromisoformat(night_date)
         with self._open() as connection:
@@ -243,7 +276,7 @@ class Api:
             }
 
     @_safely
-    def compare_nights(self, first: str, second: str) -> Record:
+    def compare_nights(self, first: str, second: str) -> CompareAnswer:
         """Return two nights with their tracks, annotations and differences."""
         days = [date.fromisoformat(first), date.fromisoformat(second)]
         with self._open() as connection:
@@ -253,7 +286,7 @@ class Api:
             ]
             if missing:
                 return {"found": False, "missing": missing}
-            sides = [
+            sides: list[NightSide] = [
                 {**detail, "annotations": annotation_store.day_annotations(connection, day)}
                 for day, detail in zip(days, details, strict=True)
                 if detail
@@ -267,7 +300,7 @@ class Api:
             }
 
     @_safely
-    def day(self, day: str) -> Record:
+    def day(self, day: str) -> DateAnswer:
         """Return what is noted on a date, to annotate it from the calendar."""
         when = date.fromisoformat(day)
         with self._open() as connection:
@@ -279,7 +312,7 @@ class Api:
             }
 
     @_safely
-    def day_detail(self, day: str) -> Record:
+    def day_detail(self, day: str) -> DayAnswer:
         """Return one day with its tracks, its neighbours and what the user noted."""
         when = date.fromisoformat(day)
         with self._open() as connection:
@@ -294,34 +327,34 @@ class Api:
             }
 
     @_safely
-    def tags(self) -> Record:
+    def tags(self) -> TagsAnswer:
         """Return every tag, including the ones switched off, to manage them."""
         with self._open() as connection:
             return {"tags": annotation_store.list_tags(connection, include_inactive=True)}
 
     @_safely
-    def add_tag(self, name: str) -> Record:
+    def add_tag(self, name: str) -> TagsAnswer:
         """Create a tag and return the whole list."""
         with self._open() as connection:
             annotation_store.add_tag(connection, name)
             return {"tags": annotation_store.list_tags(connection, include_inactive=True)}
 
     @_safely
-    def rename_tag(self, tag_id: int, name: str) -> Record:
+    def rename_tag(self, tag_id: int, name: str) -> TagsAnswer:
         """Rename a tag and return the whole list."""
         with self._open() as connection:
             annotation_store.rename_tag(connection, tag_id, name)
             return {"tags": annotation_store.list_tags(connection, include_inactive=True)}
 
     @_safely
-    def set_tag_active(self, tag_id: int, active: bool) -> Record:
+    def set_tag_active(self, tag_id: int, active: bool) -> TagsAnswer:
         """Switch a tag off or on and return the whole list."""
         with self._open() as connection:
             annotation_store.set_tag_active(connection, tag_id, active)
             return {"tags": annotation_store.list_tags(connection, include_inactive=True)}
 
     @_safely
-    def set_tag(self, day: str, tag_id: int, present: bool) -> Record:
+    def set_tag(self, day: str, tag_id: int, present: bool) -> AnnotationsAnswer:
         """Mark or unmark a date with a tag and return what is noted on it."""
         when = date.fromisoformat(day)
         with self._open() as connection:
@@ -329,7 +362,7 @@ class Api:
             return {"annotations": annotation_store.day_annotations(connection, when)}
 
     @_safely
-    def set_note(self, day: str, text: str) -> Record:
+    def set_note(self, day: str, text: str) -> AnnotationsAnswer:
         """Save the free note of a date and return what is noted on it."""
         when = date.fromisoformat(day)
         with self._open() as connection:
@@ -339,7 +372,7 @@ class Api:
     @_safely
     def dashboard(
         self, period: str, nights: str, tag: int | None = None, tagged: bool = True
-    ) -> Record:
+    ) -> DashboardAnswer:
         """Return the figures of every view for the chosen period, kind of night and tag."""
         with self._open() as connection:
             scope = self._scope(connection, period, nights, tag, tagged)
@@ -369,7 +402,7 @@ class Api:
     @_safely
     def worst_nights(
         self, period: str, nights: str, order_by: str, tag: int | None = None, tagged: bool = True
-    ) -> Record:
+    ) -> WorstNightsAnswer:
         """Return the hardest nights for oxygen, ranked by the chosen measure."""
         with self._open() as connection:
             scope = self._scope(connection, period, nights, tag, tagged)
@@ -387,14 +420,14 @@ class Api:
         tag: int | None = None,
         tagged: bool = True,
         highlight: int | None = None,
-    ) -> Record:
+    ) -> Relation:
         """Pair two metrics night by night, flagging the nights of a highlighted tag."""
         with self._open() as connection:
             scope = self._scope(connection, period, nights, tag, tagged)
             return night_queries.relate(connection, x, y, scope, highlight)
 
     @_safely
-    def tag_comparison(self, period: str, nights: str, tag: int) -> Record:
+    def tag_comparison(self, period: str, nights: str, tag: int) -> TagComparison:
         """Compare the nights with a tag and without it, for the chosen period."""
         with self._open() as connection:
             scope = self._scope(connection, period, nights)
@@ -403,7 +436,7 @@ class Api:
     @_safely
     def export_csv(
         self, period: str, nights: str, tag: int | None = None, tagged: bool = True
-    ) -> Record:
+    ) -> SavedAnswer:
         """Save the nights of the current filter as a CSV file the user chooses."""
         target = self._dialogs.choose_save("misalud_noches.csv")
         if target is None:
@@ -415,14 +448,14 @@ class Api:
         return {"saved": True, "file_name": target.name}
 
     @_safely
-    def report_options(self) -> Record:
+    def report_options(self) -> ReportOptionsAnswer:
         """Return what the report form starts with: the saved profile and watch model."""
         with self._open() as connection:
             profile = profile_store.load_profile(connection)
         return {"profile": profile, "watch_model": load_settings(self._paths.data_dir).watch_model}
 
     @_safely
-    def create_report(self, period: str, options: dict[str, Any]) -> Record:
+    def create_report(self, period: str, options: dict[str, Any]) -> SavedAnswer:
         """Build the report for a period and save it as a PDF the user chooses.
 
         Args:
@@ -469,7 +502,7 @@ class Api:
         return {"saved": True, "file_name": target.name, "pages": pages}
 
     @_safely
-    def start_import(self) -> Record:
+    def start_import(self) -> ImportPreviewAnswer:
         """Ask for an export and build the preview of importing it.
 
         Nothing is stored. The preview stays ready for ``confirm_import`` until
@@ -504,8 +537,12 @@ class Api:
             "last_date": plan.last_date.isoformat() if plan.last_date else None,
             "is_older_export": plan.is_older_export,
             "totals": {
-                name: plan.total(name)
-                for name in ("new", "updated", "unchanged", "kept", "superseded", "updated_old")
+                "new": plan.total("new"),
+                "updated": plan.total("updated"),
+                "unchanged": plan.total("unchanged"),
+                "kept": plan.total("kept"),
+                "superseded": plan.total("superseded"),
+                "updated_old": plan.total("updated_old"),
             },
             "tables": [
                 {
@@ -537,12 +574,12 @@ class Api:
         }
 
     @_safely
-    def import_step(self) -> Record:
+    def import_step(self) -> ImportStepAnswer:
         """Return the step a running import is on, for the progress bar."""
         return {"step": self._step}
 
     @_safely
-    def confirm_import(self) -> Record:
+    def confirm_import(self) -> ImportDoneAnswer:
         """Merge the prepared import and return what changed."""
         with self._lock:
             if self._prepared is None:
@@ -565,26 +602,26 @@ class Api:
         }
 
     @_safely
-    def cancel_import(self) -> Record:
+    def cancel_import(self) -> Nothing:
         """Drop the prepared import without storing anything."""
         with self._lock:
             self._discard_import()
         return {}
 
     @_safely
-    def database_panel(self) -> Record:
+    def database_panel(self) -> DatabasePanelAnswer:
         """Return the state of the database for the "Database" panel."""
         with self._open() as connection:
             history = database_queries.import_history(connection)
-            panel = {
-                "available": database_queries.data_period(connection),
-                "history": history,
-                "tables": database_queries.table_sizes(connection),
-                "issues": database_queries.issue_summary(connection),
-            }
+            available = database_queries.data_period(connection)
+            tables = database_queries.table_sizes(connection)
+            issues = database_queries.issue_summary(connection)
         database = self._paths.database
         return {
-            **panel,
+            "available": available,
+            "history": history,
+            "tables": tables,
+            "issues": issues,
             "version": misalud.__version__,
             "folder": str(self._paths.data_dir),
             "size_bytes": database.stat().st_size,
@@ -602,13 +639,13 @@ class Api:
         }
 
     @_safely
-    def open_data_folder(self) -> Record:
+    def open_data_folder(self) -> Nothing:
         """Show the data folder in the file explorer."""
         self._dialogs.open_folder(self._paths.data_dir)
         return {}
 
     @_safely
-    def restore_backup(self, name: str) -> Record:
+    def restore_backup(self, name: str) -> RestoredAnswer:
         """Put a backup back in place of the database.
 
         Only a backup listed by ``database_panel`` can be restored: the name is

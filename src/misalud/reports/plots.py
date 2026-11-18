@@ -14,6 +14,7 @@ from typing import Any
 from reportlab.graphics.shapes import Circle, Drawing, Line, PolyLine, Rect, String
 from reportlab.lib.colors import HexColor
 
+from misalud.queries.night_detail import NightDetail
 from misalud.reports.charts import BAR, FONT, GRID, INK, MUTED, nice_axis
 
 ORANGE = HexColor("#eb6834")
@@ -389,7 +390,7 @@ def _hour_labels(plot: Plot, start: datetime, length: float) -> None:
             plot.x_label(position, f"{clock:02d}:00")
 
 
-def tracks_chart(detail: dict[str, Any], names: Sequence[str], *, width: float) -> Drawing:
+def tracks_chart(detail: NightDetail, names: Sequence[str], *, width: float) -> Drawing:
     """Draw the four main tracks of one night on a shared time axis.
 
     From top to bottom: sleep stages, lowest oxygen of each interval with the

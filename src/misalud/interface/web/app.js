@@ -781,8 +781,9 @@ function drawCompare() {
       axisLabel: {color: T.ts, fontSize: 11, show: index === lanes.length - 1, formatter: label}}));
     const both = sides.map(([, side]) => side.tracks[lane.name]);
     const axis = view.axis(both[0].concat(both[1]));
-    const values = both[0].concat(both[1]).map(point => point.value).filter(value => typeof value === 'number');
-    if (axis.scale && values.length) Object.assign(axis, {scale: false, min: Math.floor(Math.min(...values)), max: Math.ceil(Math.max(...values))});
+    // Only the tracks made of points carry a value; the ones made of spans keep their own axis.
+    const values = axis.scale ? both[0].concat(both[1]).map(point => point.value).filter(value => typeof value === 'number') : [];
+    if (values.length) Object.assign(axis, {scale: false, min: Math.floor(Math.min(...values)), max: Math.ceil(Math.max(...values))});
     option.yAxis.push(Object.assign(axisBase(), {type: 'value', gridIndex: index, splitNumber: 2}, axis));
     const series = Object.assign(view.series(data, lane.side.night, X), {name: t('track.' + lane.name) + ' · ' + lane.letter, xAxisIndex: index, yAxisIndex: index});
     series.markArea = {silent: true, itemStyle: {color: T.c2, opacity: .13}, data: lane.side.low_spans.map(span => [{xAxis: X(span.from)}, {xAxis: X(span.to)}])};

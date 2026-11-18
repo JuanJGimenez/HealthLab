@@ -7,7 +7,7 @@ user asks for it, each time.
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
+from typing import TypedDict
 
 from misalud.annotations.store import AnnotationError
 from misalud.storage.database import Connection
@@ -15,7 +15,17 @@ from misalud.storage.database import Connection
 EARLIEST_BIRTH_YEAR = 1900
 
 
-def load_profile(connection: Connection) -> dict[str, Any]:
+class Profile(TypedDict):
+    """Personal data offered to the report form."""
+
+    name: str | None
+    birth_year: int | None
+    sex: str | None
+    height_cm: float | None
+    weight_kg: float | None
+
+
+def load_profile(connection: Connection) -> Profile:
     """Return the saved personal data, with height and weight proposed from the watch.
 
     Args:

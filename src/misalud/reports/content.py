@@ -18,7 +18,7 @@ from misalud.queries import nights as night_queries
 from misalud.queries import report as report_queries
 from misalud.queries.common import Period, Record
 from misalud.queries.day_detail import hourly_profile
-from misalud.queries.night_detail import night_detail
+from misalud.queries.night_detail import NightDetail, night_detail
 from misalud.storage.database import Connection
 
 MAX_DETAIL_NIGHTS: Final = 2
@@ -108,7 +108,7 @@ class ReportContent:
     weekdays: Record
     tag_patterns: list[Record]
     blocks: dict[str, Any] = field(default_factory=dict)
-    details: list[dict[str, Any]] = field(default_factory=list)
+    details: list[NightDetail] = field(default_factory=list)
 
 
 def _heart(connection: Connection, options: ReportOptions) -> Any:

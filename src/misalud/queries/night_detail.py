@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from types import MappingProxyType
-from typing import Any, Final
+from typing import Final, TypedDict
 
 from misalud.config import THRESHOLDS
 from misalud.queries.common import Record, records
@@ -141,7 +141,17 @@ def low_spans(intervals: list[Record]) -> list[Record]:
     return spans
 
 
-def night_detail(connection: Connection, night_date: date) -> dict[str, Any] | None:
+class NightDetail(TypedDict):
+    """One night with its tracks and its neighbours."""
+
+    night: Record
+    tracks: dict[str, list[Record]]
+    low_spans: list[Record]
+    previous: str | None
+    next: str | None
+
+
+def night_detail(connection: Connection, night_date: date) -> NightDetail | None:
     """Return one night with its tracks and its neighbours.
 
     Args:
@@ -176,7 +186,8 @@ def night_detail(connection: Connection, night_date: date) -> dict[str, Any] | N
         "night": found[0],
         "tracks": tracks,
         "low_spans": low_spans(tracks["oxygen"]),
-        **neighbours,
+        "previous": neighbours["previous"],
+        "next": neighbours["next"],
     }
 
 
