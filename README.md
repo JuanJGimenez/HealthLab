@@ -1,7 +1,7 @@
 # HealthLab
 
 Aplicación de escritorio para Windows que importa las exportaciones de Samsung Health, las acumula
-en una base local y permite analizar y relacionar los datos del reloj.
+en una base local y permite analizar y relacionar los datos del reloj Samsung Watch Ultra.
 
 Todos los datos quedan en la computadora. La app no envía nada a ningún servicio.
 Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica.
