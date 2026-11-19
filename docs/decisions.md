@@ -94,8 +94,8 @@ en código. Una decisión que reemplaza a otra lo dice en su nota.
 - **Decisiones 52 a 54.** Tomadas en la etapa 7 y aprobadas por el usuario el 15 de noviembre de 2026.
 - **Decisiones 55 a 58.** Tomadas en la etapa 8a y aprobadas por el usuario el 15 de noviembre de 2026. Sobre la 56, el usuario preguntó por qué la ventana no guardaba el PDF: el componente de Edge sí puede, pero la librería de la ventana no ofrece una forma documentada de pedírselo; se mantuvo el PDF armado en Python.
 - **Decisiones 59 a 61.** Tomadas en la etapa 8b y aprobadas por el usuario el 15 de noviembre de 2026.
-- **Decisiones 62 a 66.** Tomadas en la etapa 9; pendientes de la confirmación del usuario.
+- **Decisiones 62 a 66.** Tomadas en la etapa 9 y aprobadas por el usuario el 18 de noviembre de 2026.
 - **Decisión 62.** Cumplida el 18 de noviembre de 2026: el usuario armó la carpeta en Windows, la ventana abrió, importó y mostró las vistas, sin avisos de Windows ni del antivirus. La versión pasó a 1.0.0.
-- **Decisiones 69 a 71.** Tomadas en la etapa 10b; pendientes de la confirmación del usuario.
-- **Decisiones 67 y 68.** Tomadas en la etapa 10a, a partir de una revisión de diseño que trajo el usuario el 18 de noviembre de 2026; pendientes de su confirmación.
+- **Decisiones 69 a 71.** Tomadas en la etapa 10b y aprobadas por el usuario el 18 de noviembre de 2026.
+- **Decisiones 67 y 68.** Tomadas en la etapa 10a, a partir de una revisión de diseño que trajo el usuario el 18 de noviembre de 2026, y aprobadas por él ese mismo día.
 - **Esquema.** La etapa 4 agregó la tabla `exercise_custom_type` a la versión 1 del esquema, sin migración, porque todavía no existe ninguna base en uso. Desde la primera entrega que el usuario instale, todo cambio de esquema irá por migración.
