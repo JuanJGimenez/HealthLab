@@ -1,1 +1,1 @@
-"""Tests for MiSalud."""
+"""Tests for HealthLab."""

@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from misalud.reading.archive import extract_archive, is_export_folder, locate_export, open_export
-from misalud.reading.errors import ExportNotFoundError, UnsafeArchiveError
+from healthlab.reading.archive import extract_archive, is_export_folder, locate_export, open_export
+from healthlab.reading.errors import ExportNotFoundError, UnsafeArchiveError
 from tests.support.synthetic_export import SyntheticExport
 
 

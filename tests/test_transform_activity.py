@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from misalud.transform.activity import (
+from healthlab.transform.activity import (
     transform_activity_summary,
     transform_custom_exercises,
     transform_exercise,
@@ -13,7 +13,7 @@ from misalud.transform.activity import (
     transform_vitality,
     transform_weight,
 )
-from misalud.transform.common import KEPT, REJECTED
+from healthlab.transform.common import KEPT, REJECTED
 from tests.support.fake_source import FakeSource, epoch_ms, raw, timed
 
 STEPS = "step_daily_trend"

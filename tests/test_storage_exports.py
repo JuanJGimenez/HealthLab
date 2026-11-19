@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from misalud.storage.database import Connection, open_database
-from misalud.storage.exports import archive_export, prune_exports
+from healthlab.storage.database import Connection, open_database
+from healthlab.storage.exports import archive_export, prune_exports
 
 
 @pytest.fixture

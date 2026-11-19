@@ -10,13 +10,13 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from misalud.reading.source import ExportSource
-from misalud.storage import merge
-from misalud.storage.database import Connection, open_database
-from misalud.storage.errors import MergeError
-from misalud.storage.merge import ImportInfo, TablePlan, apply_merge, plan_merge
-from misalud.transform.common import KEPT, ValidationIssue
-from misalud.transform.export import transform_export
+from healthlab.reading.source import ExportSource
+from healthlab.storage import merge
+from healthlab.storage.database import Connection, open_database
+from healthlab.storage.errors import MergeError
+from healthlab.storage.merge import ImportInfo, TablePlan, apply_merge, plan_merge
+from healthlab.transform.common import KEPT, ValidationIssue
+from healthlab.transform.export import transform_export
 from tests.support.synthetic_export import SyntheticExport, build_export
 
 FIRST = ImportInfo("first.zip", datetime(2026, 3, 1, 20, 0), "7013005")

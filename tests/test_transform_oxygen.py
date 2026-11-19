@@ -5,8 +5,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from misalud.transform.common import KEPT, TransformError
-from misalud.transform.oxygen import INTERVAL_COLUMNS, NIGHT_COLUMNS, transform_oxygen
+from healthlab.transform.common import KEPT, TransformError
+from healthlab.transform.oxygen import INTERVAL_COLUMNS, NIGHT_COLUMNS, transform_oxygen
 from tests.support.fake_source import FakeSource, epoch_ms, raw, timed
 
 TABLE = "tracker.oxygen_saturation"

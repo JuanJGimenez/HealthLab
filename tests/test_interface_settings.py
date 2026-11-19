@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from misalud.interface.i18n import load_texts
-from misalud.interface.settings import LANGUAGES, Settings, load_settings, save_settings
-from misalud.interface.window import WEB_DIR
-from misalud.queries.nights import NIGHT_METRICS
+from healthlab.interface.i18n import load_texts
+from healthlab.interface.settings import LANGUAGES, Settings, load_settings, save_settings
+from healthlab.interface.window import WEB_DIR
+from healthlab.queries.nights import NIGHT_METRICS
 
 PLACEHOLDER = re.compile(r"\{(\w+)\}")
-SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src" / "misalud"
+SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src" / "healthlab"
 
 
 def test_settings_start_with_defaults_and_survive_a_restart(tmp_path: Path) -> None:

@@ -12,7 +12,7 @@ import functools
 import types
 from typing import Any, Union, get_args, get_origin, get_type_hints, is_typeddict
 
-from misalud.interface.api import Api
+from healthlab.interface.api import Api
 
 
 class ContractError(AssertionError):

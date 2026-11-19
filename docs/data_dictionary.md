@@ -1,10 +1,10 @@
-# MiSalud: diccionario de datos, versión 1
+# HealthLab: diccionario de datos, versión 1
 
 Estado: borrador de la etapa 0, del 14 de noviembre de 2026.
 Exportación de referencia: `samsunghealth_<usuario>_20261114105425` (Samsung Health 7013005).
 Archivo hermano: `contracts.json`, con las 59 tablas de Samsung y sus 1.115 columnas tal como llegan.
 
-Este documento describe las tablas de la base de MiSalud: qué es una fila, de qué archivo de Samsung sale,
+Este documento describe las tablas de la base de HealthLab: qué es una fila, de qué archivo de Samsung sale,
 cuál es su clave de fusión y qué significa cada columna. Los nombres de tablas y columnas van en inglés
 (decisión 11). Todavía no existe código: es la especificación que la etapa 2 debe cumplir.
 
@@ -12,7 +12,7 @@ cuál es su clave de fusión y qué significa cada columna. Los nombres de tabla
 
 - **Verificado:** comprobado contra la exportación de referencia.
 - **Supuesto:** interpretación razonable que la exportación no permite confirmar. Se revisa antes de usarla en un informe.
-- **Derivado:** lo calcula MiSalud; no viene de Samsung.
+- **Derivado:** lo calcula HealthLab; no viene de Samsung.
 
 ## Convenciones generales
 
@@ -24,7 +24,7 @@ cuál es su clave de fusión y qué significa cada columna. Los nombres de tabla
 | Desfases presentes | UTC-3 en 697 sesiones de sueño, UTC-4 en 10 y UTC-5 en 2. Nunca se asume un desfase fijo. | Verificado |
 | Días | `day_time` es la medianoche del día local, escrita como texto. Se guarda como fecha en `day`. | Verificado |
 | Fecha de una noche | `night_date` = fecha local del inicio del sueño menos 12 horas. Una noche iniciada a las 02:00 del sábado pertenece al viernes. | Derivado |
-| Clave de Samsung | `datauuid`, presente en 59 de las 59 tablas y en todas las que usa MiSalud. Se guarda como `samsung_id`. Los identificadores de septiembre siguen intactos en noviembre, salvo en las tablas de ventana corta. | Verificado |
+| Clave de Samsung | `datauuid`, presente en 59 de las 59 tablas y en todas las que usa HealthLab. Se guarda como `samsung_id`. Los identificadores de septiembre siguen intactos en noviembre, salvo en las tablas de ventana corta. | Verificado |
 | Registros con fecha 1970 | 4 eventos de ronquido traen año 1970. Se rechazan por validación. | Verificado |
 | Columnas de control | Toda tabla de detalle lleva `first_import_id` y `last_import_id`, que apuntan a `import_log`. | Derivado |
 

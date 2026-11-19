@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from misalud.reading.source import ExportSource
-from misalud.storage.schema import DETAIL_TABLES, MOMENT
-from misalud.transform.export import transform_export
+from healthlab.reading.source import ExportSource
+from healthlab.storage.schema import DETAIL_TABLES, MOMENT
+from healthlab.transform.export import transform_export
 from tests.support.synthetic_export import SyntheticExport
 
 

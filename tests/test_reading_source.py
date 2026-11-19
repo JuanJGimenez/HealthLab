@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from misalud.reading.errors import DetailFileError, TableMissingError
-from misalud.reading.source import ExportSource
+from healthlab.reading.errors import DetailFileError, TableMissingError
+from healthlab.reading.source import ExportSource
 from tests.support import synthetic_export as synth
 from tests.support.synthetic_export import SyntheticExport
 

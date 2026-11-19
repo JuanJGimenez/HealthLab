@@ -3,6 +3,23 @@
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa
 [versionado semántico](https://semver.org/lang/es/).
 
+## [1.1.0] - 2026-11-19
+
+La app pasa a llamarse HealthLab y tiene licencia.
+
+### Cambiado
+
+- Nombre: MiSalud pasa a ser HealthLab. El programa es `HealthLab.exe`, el paquete de Python
+  `healthlab` y la variable para elegir la carpeta, `HEALTHLAB_HOME`.
+- Instalar sobre una carpeta de MiSalud quita `MiSalud.exe` y conserva `data`. La base mantiene
+  su nombre, `salud.duckdb`, así que los datos se abren sin cambios.
+
+### Agregado
+
+- Licencia PolyForm Noncommercial 1.0.0 (`LICENSE`), con el autor en `pyproject.toml`.
+- La carpeta para Windows lleva `LICENSE.txt` y `THIRD_PARTY_LICENSES.txt`, con la licencia de
+  Python y de cada librería que incluye, más la de Apache ECharts.
+
 ## [1.0.1] - 2026-11-18
 
 Etapa 10b: el acuerdo entre Python y la página queda escrito y se verifica solo. Sin cambios en

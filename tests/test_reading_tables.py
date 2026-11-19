@@ -7,8 +7,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from misalud.reading.errors import TableFormatError
-from misalud.reading.tables import TableFile, list_tables, read_header, read_table, short_name
+from healthlab.reading.errors import TableFormatError
+from healthlab.reading.tables import TableFile, list_tables, read_header, read_table, short_name
 from tests.support import synthetic_export as synth
 from tests.support.synthetic_export import SyntheticExport
 

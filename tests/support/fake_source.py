@@ -13,7 +13,7 @@ from typing import Any
 
 import pandas as pd
 
-from misalud.reading.errors import DetailFileError, TableMissingError
+from healthlab.reading.errors import DetailFileError, TableMissingError
 
 EXPORTED_AT = datetime(2026, 1, 10, 12, 0, 0)
 

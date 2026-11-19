@@ -1,11 +1,11 @@
 # Arquitectura
 
-MiSalud es un programa Python que abre una ventana propia y muestra el dashboard adentro. La ventana
+HealthLab es un programa Python que abre una ventana propia y muestra el dashboard adentro. La ventana
 habla con Python directamente, sin servidor web ni puertos abiertos (decisiones 1 y 13).
 
 ## Capas
 
-El código vive en `src/misalud/` y se organiza en capas. Una capa solo puede importar a las que
+El código vive en `src/healthlab/` y se organiza en capas. Una capa solo puede importar a las que
 están antes en esta lista:
 
 | Orden | Capa | Hace | No hace |
@@ -40,10 +40,10 @@ capa lo conduce; sin una capa propia, esa coordinación habría terminado dentro
 
 Niveles del informe de compatibilidad:
 
-- **Error:** falta una tabla o una columna clave que MiSalud usa, o una columna numérica pasó a
+- **Error:** falta una tabla o una columna clave que HealthLab usa, o una columna numérica pasó a
   texto. Esa tabla no se importa; las demás sí.
-- **Advertencia:** otro cambio en una tabla en uso, o una tabla que MiSalud no conoce.
-- **Información:** cambios en tablas que MiSalud no usa.
+- **Advertencia:** otro cambio en una tabla en uso, o una tabla que HealthLab no conoce.
+- **Información:** cambios en tablas que HealthLab no usa.
 
 ## Módulos de la capa de base de datos
 
@@ -56,7 +56,7 @@ Niveles del informe de compatibilidad:
 | `exports` | Guardar los zips originales y borrar los que ya no hacen falta |
 | `errors` | Errores propios de la base |
 
-La base guarda su número de versión de esquema. Al abrirla, MiSalud aplica las migraciones que le
+La base guarda su número de versión de esquema. Al abrirla, HealthLab aplica las migraciones que le
 falten, todas juntas o ninguna, y se niega a abrir una base creada por una versión más nueva.
 
 `pipeline.importing` conduce una importación en dos pasos: `prepare_import` lee, transforma y arma
@@ -165,7 +165,7 @@ data/
   logs/           registro técnico
 ```
 
-`config.app_root()` resuelve la carpeta de la app: la variable `MISALUD_HOME` si está definida, la
+`config.app_root()` resuelve la carpeta de la app: la variable `HEALTHLAB_HOME` si está definida, la
 carpeta del ejecutable si la app está empaquetada, o la carpeta del proyecto si corre desde el código.
 
 ## Empaquetado
@@ -177,11 +177,13 @@ la app: nada de `src/` la importa.
 |---|---|
 | `build_windows.bat` | Crear el entorno de armado y llamar a `build.py` |
 | `build.py` | Armar con PyInstaller, ejecutar la autoverificación del resultado e instalar sobre una carpeta en uso sin tocar `data` |
-| `misalud.spec` | Receta de PyInstaller: el código sale de `src/` y los archivos de la app se listan uno por uno |
+| `healthlab.spec` | Receta de PyInstaller: el código sale de `src/` y los archivos de la app se listan uno por uno |
+| `notices.py` | Seguir los requisitos de la app en el entorno de armado y escribir `THIRD_PARTY_LICENSES.txt` con la licencia de cada librería que viaja en la carpeta |
 | `launcher.py` | Punto de entrada del ejecutable |
 
 El armado falla si el programa armado no pasa su autoverificación. `tests/test_release_build.py`
-prueba la instalación sobre una carpeta con datos. El procedimiento completo está en
+prueba la instalación sobre una carpeta con datos, también una de antes del cambio de nombre, y
+`tests/test_release_notices.py` prueba la lista de licencias. El procedimiento completo está en
 `build_windows.md`.
 
 ## Documentos relacionados

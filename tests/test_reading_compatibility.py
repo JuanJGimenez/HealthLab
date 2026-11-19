@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from misalud.reading.compatibility import (
+from healthlab.reading.compatibility import (
     Finding,
     Severity,
     ValueKind,
@@ -16,8 +16,8 @@ from misalud.reading.compatibility import (
     kind_of_dtype,
     kind_of_values,
 )
-from misalud.reading.contracts import ColumnContract, TableContract, load_contracts
-from misalud.reading.tables import short_name
+from healthlab.reading.contracts import ColumnContract, TableContract, load_contracts
+from healthlab.reading.tables import short_name
 from tests.support import synthetic_export as synth
 from tests.support.synthetic_export import SyntheticExport
 

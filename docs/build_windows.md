@@ -1,6 +1,6 @@
-# Generar la carpeta de MiSalud para Windows
+# Generar la carpeta de HealthLab para Windows
 
-Este documento explica cómo convertir el proyecto en la carpeta que se usa: `MiSalud.exe` más sus
+Este documento explica cómo convertir el proyecto en la carpeta que se usa: `HealthLab.exe` más sus
 piezas. Se hace en la computadora con Windows, una vez por versión.
 
 ## Qué hace falta
@@ -18,7 +18,7 @@ Python hace falta solo para armar. La carpeta resultante funciona sin Python.
 
 1. **Instalar Python.** En el instalador, marcar **Add python.exe to PATH**.
 2. **Descomprimir el proyecto** en una carpeta de ruta corta y sin sincronización con la nube,
-   por ejemplo `C:\proyectos\misalud`.
+   por ejemplo `C:\proyectos\healthlab`.
 3. **Doble clic en `release\build_windows.bat`.** Se abre una ventana negra que:
    1. crea un entorno de Python propio en `.venv-build`;
    2. descarga las librerías;
@@ -26,19 +26,20 @@ Python hace falta solo para armar. La carpeta resultante funciona sin Python.
    4. ejecuta la autoverificación del programa armado.
 4. **Leer el final.** Tiene que decir `RESULT: OK` y `Listo`. La primera vez tarda entre 5 y
    10 minutos.
-5. **Copiar `dist\MiSalud`** al lugar donde se va a usar, por ejemplo `C:\MiSalud`.
-6. **Abrir `C:\MiSalud\MiSalud.exe`.**
+5. **Copiar `dist\HealthLab`** al lugar donde se va a usar, por ejemplo `C:\HealthLab`.
+6. **Abrir `C:\HealthLab\HealthLab.exe`.**
 
 ### Los pasos 5 y 6 en uno
 
 Desde una terminal abierta en la carpeta del proyecto:
 
 ```
-release\build_windows.bat --install C:\MiSalud
+release\build_windows.bat --install C:\HealthLab
 ```
 
-Arma, verifica y deja el programa en `C:\MiSalud`. Sirve igual para la primera instalación y para
-cada actualización: reemplaza `MiSalud.exe`, `_internal` y `Manual.md`, y no toca `data`.
+Arma, verifica y deja el programa en `C:\HealthLab`. Sirve igual para la primera instalación y para
+cada actualización: reemplaza `HealthLab.exe`, `_internal`, `Manual.md`, `LICENSE.txt` y
+`THIRD_PARTY_LICENSES.txt`, y no toca `data`.
 
 ### Probar una importación completa antes de usarla
 
@@ -51,12 +52,19 @@ agrega una línea `import` con la cantidad de noches y de días.
 
 ## Actualizar a una versión nueva
 
-1. Cerrar MiSalud.
+1. Cerrar HealthLab.
 2. Descomprimir el proyecto nuevo, reemplazando el anterior.
-3. Ejecutar `release\build_windows.bat --install C:\MiSalud`.
+3. Ejecutar `release\build_windows.bat --install C:\HealthLab`.
 
-A mano, sin `--install`: borrar `MiSalud.exe` y `_internal` de la carpeta en uso y copiar los
-nuevos desde `dist\MiSalud`. **Nunca borrar ni reemplazar `data`.**
+A mano, sin `--install`: borrar `HealthLab.exe` y `_internal` de la carpeta en uso y copiar los
+nuevos desde `dist\HealthLab`. **Nunca borrar ni reemplazar `data`.**
+
+### Desde una carpeta de MiSalud
+
+Hasta la versión 1.0.1 la app se llamaba MiSalud. Para actualizar, usar `--install` con la carpeta
+de siempre, por ejemplo `release\build_windows.bat --install C:\MiSalud`: instala `HealthLab.exe`,
+quita `MiSalud.exe` y deja `data` intacta. La base conserva su nombre, `salud.duckdb`, así que los
+datos se abren sin cambios.
 
 ## Qué revisa la autoverificación
 
@@ -80,9 +88,9 @@ programa.
 |---|---|
 | "No se encontró Python 3.12 o más nuevo" | Instalar Python y marcar la opción del PATH; después cerrar y volver a abrir la ventana. |
 | Falla al instalar las librerías | Sin internet, o un Python demasiado nuevo para alguna librería. Probar con Python 3.13. |
-| El antivirus borra `MiSalud.exe` | Los programas armados con PyInstaller y sin firma dan falsas alarmas. Agregar la carpeta como excepción. |
+| El antivirus borra `HealthLab.exe` | Los programas armados con PyInstaller y sin firma dan falsas alarmas. Agregar la carpeta como excepción. |
 | "Windows protegió su PC" al abrir | Más información, Ejecutar de todas formas. |
-| `ERROR: ... PermissionError` al usar `--install` | MiSalud está abierto. Cerrarlo y repetir. |
+| `ERROR: ... PermissionError` al usar `--install` | HealthLab está abierto. Cerrarlo y repetir. |
 | La ventana abre en blanco | Falta WebView2 de Microsoft; viene con Windows 11 y con Edge. |
 
 ## Archivos de esta parte del proyecto
@@ -91,9 +99,10 @@ programa.
 |---|---|
 | `release/build_windows.bat` | Prepara el entorno y llama al armado. Es lo único que hace falta ejecutar. |
 | `release/build.py` | Arma, verifica e instala. |
-| `release/misalud.spec` | La receta de PyInstaller: qué entra en la carpeta. |
+| `release/notices.py` | Junta las licencias de las librerías que van en la carpeta, para `THIRD_PARTY_LICENSES.txt`. |
+| `release/healthlab.spec` | La receta de PyInstaller: qué entra en la carpeta. |
 | `release/launcher.py` | El punto de entrada del programa. |
-| `release/misalud.ico` | El ícono. `release/make_icon.py` lo vuelve a dibujar. |
+| `release/healthlab.ico` | El ícono. `release/make_icon.py` lo vuelve a dibujar. |
 
 ## Estado de la comprobación
 

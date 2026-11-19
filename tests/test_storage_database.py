@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from misalud.storage.database import MIGRATIONS, Connection, open_database, schema_version
-from misalud.storage.errors import SchemaVersionError
-from misalud.storage.schema import DETAIL_TABLES
+from healthlab.storage.database import MIGRATIONS, Connection, open_database, schema_version
+from healthlab.storage.errors import SchemaVersionError
+from healthlab.storage.schema import DETAIL_TABLES
 
 NOW = datetime(2026, 1, 10, 12, 0, 0)
 

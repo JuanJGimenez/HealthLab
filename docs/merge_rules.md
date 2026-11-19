@@ -27,7 +27,7 @@ intactos en la de noviembre, en todas las tablas de historia completa.
 ## Qué cambió de verdad entre dos exportaciones reales
 
 En la etapa 0 se vieron dos cambios entre septiembre y noviembre de 2026, ambos en tablas que
-MiSalud no importa:
+HealthLab no importa:
 
 - **El día de la exportación.** Del 15 de septiembre faltaban las filas de pasos por fuente (reloj
   y teléfono), que aparecieron en la exportación siguiente. La fila con el total del día, la única
@@ -54,7 +54,7 @@ Los que difieren quedan como están y la vista previa los cuenta como "superados
 
 ## Costo aceptado
 
-Un registro erróneo que se borra en Samsung Health sigue en MiSalud, porque la fusión nunca borra.
+Un registro erróneo que se borra en Samsung Health sigue en HealthLab, porque la fusión nunca borra.
 
 ## Cómo se prueba
 

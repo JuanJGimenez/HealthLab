@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from misalud.transform.heart import (
+from healthlab.transform.heart import (
     transform_ecg,
     transform_heart_rate,
     transform_hrv,

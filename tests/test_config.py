@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from misalud import config
+from healthlab import config
 
 
 def test_all_user_data_lives_under_the_data_folder(tmp_path: Path) -> None:
@@ -43,7 +43,7 @@ def test_app_root_is_the_executable_folder_when_packaged(
 ) -> None:
     monkeypatch.delenv(config.HOME_ENV_VAR, raising=False)
     monkeypatch.setattr(sys, "frozen", True, raising=False)
-    monkeypatch.setattr(sys, "executable", str(tmp_path / "MiSalud.exe"))
+    monkeypatch.setattr(sys, "executable", str(tmp_path / "HealthLab.exe"))
     assert config.app_root() == tmp_path.resolve()
 
 

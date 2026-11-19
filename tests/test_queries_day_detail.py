@@ -8,13 +8,13 @@ from datetime import date
 
 import pytest
 
-from misalud.derived.rebuild import rebuild_derived
-from misalud.queries.common import Period, UnknownMetricError
-from misalud.queries.coverage import short_window_notices
-from misalud.queries.day_detail import DAY_TRACKS, day_detail, hourly_profile
-from misalud.queries.nights import RELATE_METRICS, relate
-from misalud.reading.contracts import load_contracts
-from misalud.storage.database import Connection
+from healthlab.derived.rebuild import rebuild_derived
+from healthlab.queries.common import Period, UnknownMetricError
+from healthlab.queries.coverage import short_window_notices
+from healthlab.queries.day_detail import DAY_TRACKS, day_detail, hourly_profile
+from healthlab.queries.nights import RELATE_METRICS, relate
+from healthlab.reading.contracts import load_contracts
+from healthlab.storage.database import Connection
 from tests.support.sample_db import at, build_sample, insert, pulse
 
 

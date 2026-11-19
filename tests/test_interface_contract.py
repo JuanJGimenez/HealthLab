@@ -8,9 +8,9 @@ from typing import Any, TypedDict, is_typeddict
 
 import pytest
 
-from misalud.config import Paths
-from misalud.interface.api import Api
-from misalud.interface.window import WEB_DIR
+from healthlab.config import Paths
+from healthlab.interface.api import Api
+from healthlab.interface.window import WEB_DIR
 from tests.support.contract import (
     ContractError,
     answer_problems,

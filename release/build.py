@@ -1,9 +1,9 @@
-r"""Build the portable MiSalud folder, check it, and install it over an old one.
+r"""Build the portable HealthLab folder, check it, and install it over an old one.
 
 Usage, from the project folder::
 
-    python release/build.py                      # build and check dist/MiSalud
-    python release/build.py --install C:\MiSalud  # also copy it to that folder
+    python release/build.py                      # build and check dist/HealthLab
+    python release/build.py --install C:\HealthLab  # also copy it to that folder
     python release/build.py --sample export.zip  # also try a whole import
 
 Installing replaces the program files in the target folder and leaves its
@@ -24,23 +24,38 @@ import sys
 import tempfile
 from pathlib import Path
 
+if __package__ in (None, ""):  # run as a script: make ``release`` importable
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from release.notices import runtime_distributions, third_party_notices
+
 PROJECT = Path(__file__).resolve().parent.parent
-SPEC = PROJECT / "release" / "misalud.spec"
+SPEC = PROJECT / "release" / "healthlab.spec"
 MANUAL = PROJECT / "docs" / "manual.md"
+LICENSE = PROJECT / "LICENSE"
+VENDOR = PROJECT / "src" / "healthlab" / "interface" / "web" / "vendor"
 DIST = PROJECT / "dist"
 WORK = PROJECT / "build"
 
-APP_FOLDER = "MiSalud"
-EXECUTABLE = "MiSalud.exe" if sys.platform == "win32" else "MiSalud"
+APP_FOLDER = "HealthLab"
+EXECUTABLE = "HealthLab.exe" if sys.platform == "win32" else "HealthLab"
 INTERNAL_FOLDER = "_internal"
 MANUAL_NAME = "Manual.md"
+LICENSE_NAME = "LICENSE.txt"
+NOTICES_NAME = "THIRD_PARTY_LICENSES.txt"
 DATA_FOLDER = "data"
 """Folder with the user's data. Nothing in this script writes to or deletes it."""
 
-PROGRAM_ITEMS = (EXECUTABLE, INTERNAL_FOLDER, MANUAL_NAME)
+PROGRAM_ITEMS = (EXECUTABLE, INTERNAL_FOLDER, MANUAL_NAME, LICENSE_NAME, NOTICES_NAME)
 """Everything a version of the app consists of. An update replaces exactly these."""
 
-HOME_ENV_VAR = "MISALUD_HOME"
+FORMER_ITEMS = ("MiSalud.exe", "MiSalud")
+"""Program files of versions before the app was renamed HealthLab (1.1.0).
+
+An update over such a folder removes them, so only one program is left in it.
+"""
+
+HOME_ENV_VAR = "HEALTHLAB_HOME"
 
 
 class BuildError(Exception):
@@ -55,7 +70,7 @@ def build(dist: Path = DIST, work: Path = WORK) -> Path:
         work: Scratch folder of PyInstaller.
 
     Returns:
-        The app folder, ``dist / "MiSalud"``.
+        The app folder, ``dist / "HealthLab"``.
 
     Raises:
         BuildError: If PyInstaller fails.
@@ -77,6 +92,10 @@ def build(dist: Path = DIST, work: Path = WORK) -> Path:
         raise BuildError(msg)
     folder = dist / APP_FOLDER
     shutil.copyfile(MANUAL, folder / MANUAL_NAME)
+    shutil.copyfile(LICENSE, folder / LICENSE_NAME)
+    vendor_licences = sorted(VENDOR.glob("*.LICENSE")) + sorted(VENDOR.glob("*.NOTICE"))
+    notices = third_party_notices(runtime_distributions(), vendor_licences)
+    (folder / NOTICES_NAME).write_text(notices, encoding="utf-8")
     return folder
 
 
@@ -117,8 +136,10 @@ def verify(folder: Path, sample: Path | None = None) -> str:
 def install(source: Path, target: Path) -> list[str]:
     """Copy the program files of a built folder into the folder the user runs.
 
-    Only the items in ``PROGRAM_ITEMS`` are replaced. The ``data`` folder of
-    the target, and anything else the user keeps there, is left as it is.
+    Only the items in ``PROGRAM_ITEMS`` are replaced, and the executable of a
+    version from before the rename (``FORMER_ITEMS``) is removed. The ``data``
+    folder of the target, and anything else the user keeps there, is left as
+    it is.
 
     Args:
         source: The built app folder.
@@ -132,6 +153,18 @@ def install(source: Path, target: Path) -> list[str]:
             or lacks the executable.
     """
     source, target = source.resolve(), target.resolve()
+    _check_source(source, target)
+    target.mkdir(parents=True, exist_ok=True)
+    copied = [name for name in PROGRAM_ITEMS if _replace(source / name, target / name)]
+    for name in FORMER_ITEMS:
+        former = target / name
+        if former.is_file():  # only a program file; never a folder of the user
+            former.unlink()
+    return copied
+
+
+def _check_source(source: Path, target: Path) -> None:
+    """Refuse a source that is not a clean built folder, or is the target itself."""
     if source == target:
         msg = "the installation folder must be different from the built folder"
         raise BuildError(msg)
@@ -141,27 +174,26 @@ def install(source: Path, target: Path) -> list[str]:
     if not (source / EXECUTABLE).is_file():
         msg = f"{EXECUTABLE} is missing in {source}"
         raise BuildError(msg)
-    target.mkdir(parents=True, exist_ok=True)
-    copied = []
-    for name in PROGRAM_ITEMS:
-        new, old = source / name, target / name
-        if not new.exists():
-            continue
-        if old.is_dir():
-            shutil.rmtree(old)
-        elif old.exists():
-            old.unlink()
-        if new.is_dir():
-            shutil.copytree(new, old)
-        else:
-            shutil.copy2(new, old)
-        copied.append(name)
-    return copied
+
+
+def _replace(new: Path, old: Path) -> bool:
+    """Put ``new`` where ``old`` is, file or folder. Return whether ``new`` existed."""
+    if not new.exists():
+        return False
+    if old.is_dir():
+        shutil.rmtree(old)
+    elif old.exists():
+        old.unlink()
+    if new.is_dir():
+        shutil.copytree(new, old)
+    else:
+        shutil.copy2(new, old)
+    return True
 
 
 def main(arguments: list[str] | None = None) -> int:
     """Build, check and optionally install. Return the process exit code."""
-    parser = argparse.ArgumentParser(description="Build the portable MiSalud folder.")
+    parser = argparse.ArgumentParser(description="Build the portable HealthLab folder.")
     parser.add_argument(
         "--install",
         metavar="FOLDER",

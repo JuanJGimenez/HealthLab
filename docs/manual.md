@@ -1,6 +1,6 @@
-# Manual de uso de MiSalud
+# Manual de uso de HealthLab
 
-MiSalud guarda en tu computadora los datos que exporta Samsung Health y te deja mirarlos,
+HealthLab guarda en tu computadora los datos que exporta Samsung Health y te deja mirarlos,
 relacionarlos y llevarlos a una consulta médica.
 
 Tres cosas para tener presentes:
@@ -14,12 +14,14 @@ Tres cosas para tener presentes:
 
 | Elemento | Qué es | Qué hacer con él |
 |---|---|---|
-| `MiSalud.exe` | El programa. | Doble clic para abrir. |
+| `HealthLab.exe` | El programa. | Doble clic para abrir. |
 | `_internal` | Piezas que el programa necesita. | No tocar. |
 | `Manual.md` | Este manual. | Se abre con el Bloc de notas. |
+| `LICENSE.txt` | La licencia de HealthLab. | Leer antes de compartir la app. |
+| `THIRD_PARTY_LICENSES.txt` | Las licencias de los componentes de terceros que la app lleva adentro. | Solo para consulta. |
 | `data` | Tus datos: la base, los respaldos y las exportaciones originales. Aparece la primera vez que abrís la app. | Cuidarla: es lo único irreemplazable. |
 
-La carpeta puede estar en cualquier lugar donde puedas escribir, por ejemplo `C:\MiSalud`. No la
+La carpeta puede estar en cualquier lugar donde puedas escribir, por ejemplo `C:\HealthLab`. No la
 pongas dentro de `C:\Archivos de programa` ni en una carpeta sincronizada con la nube (OneDrive,
 Google Drive): la sincronización saca tus datos de salud de la computadora y puede dañar la base
 si actúa mientras la app está abierta.
@@ -49,7 +51,7 @@ alcanza.
 
 ## 3. Importar
 
-1. Abrí MiSalud y elegí **Actualizar datos** (la primera vez, **Elegir el archivo de Samsung
+1. Abrí HealthLab y elegí **Actualizar datos** (la primera vez, **Elegir el archivo de Samsung
    Health**).
 2. Elegí el archivo `.zip`.
 3. Esperá la **vista previa**: tarda alrededor de medio minuto. Todavía no se guardó nada.
@@ -164,7 +166,7 @@ El PDF contiene datos de salud. La app no lo envía a ningún lado; compartirlo 
 ## 10. El panel "Base de datos"
 
 Muestra la última importación, hasta qué fecha hay datos, el tamaño de la base y la **versión de
-MiSalud**. También:
+HealthLab**. También:
 
 - **Abrir la carpeta** de datos.
 - **Historial de importaciones.**
@@ -178,21 +180,34 @@ La app se usa en español o en inglés, con tema claro u oscuro. La elección qu
 
 ## 12. Actualizar la app
 
-Una versión nueva reemplaza `MiSalud.exe`, `_internal` y `Manual.md`. La carpeta `data` no se
-toca. Si la base necesita un cambio, la app lo hace sola al abrirse.
+Una versión nueva reemplaza `HealthLab.exe`, `_internal`, `Manual.md` y los dos archivos de
+licencias. La carpeta `data` no se toca. Si la base necesita un cambio, la app lo hace sola al abrirse.
 
 El paso a paso está en `docs/build_windows.md`, dentro del proyecto.
+
+### Si venías usando MiSalud
+
+Hasta la versión 1.0.1 la app se llamaba MiSalud. Para pasar a HealthLab, instalá la versión nueva
+en la misma carpeta que usabas: tus datos siguen ahí. Con el comando de instalación de
+`docs/build_windows.md`, el programa viejo, `MiSalud.exe`, se quita solo; si copiás los archivos a
+mano, borralo vos. La carpeta puede conservar su nombre o podés renombrarla con la app cerrada.
 
 ## 13. Si algo falla
 
 | Qué pasa | Qué hacer |
 |---|---|
 | La app no abre y muestra un mensaje | El detalle queda en `data\logs\error.log`. |
-| La app no abre y no muestra nada | Abrí una terminal en la carpeta y ejecutá `MiSalud.exe --check`. El resultado queda en `data\logs\check.txt`. |
+| La app no abre y no muestra nada | Abrí una terminal en la carpeta y ejecutá `HealthLab.exe --check`. El resultado queda en `data\logs\check.txt`. |
 | La ventana abre en blanco | Falta el componente WebView2 de Microsoft. Viene con Windows 11 y con Edge; se puede instalar desde el sitio de Microsoft. |
 | Una importación salió mal | Panel "Base de datos", **Restaurar** el respaldo anterior. Las exportaciones originales están en `data\exports`. |
 | Windows o el antivirus bloquean el programa | Ver "La primera vez que abrís el programa". |
 
-`MiSalud.exe --check` revisa que la app esté completa sin abrir la ventana. Con un archivo después,
-`MiSalud.exe --check exportacion.zip`, prueba además una importación entera en una carpeta
+`HealthLab.exe --check` revisa que la app esté completa sin abrir la ventana. Con un archivo después,
+`HealthLab.exe --check exportacion.zip`, prueba además una importación entera en una carpeta
 temporal, sin tocar tus datos.
+
+## 14. Licencia
+
+HealthLab se puede usar y compartir con fines no comerciales, según la licencia PolyForm
+Noncommercial 1.0.0 que está en `LICENSE.txt`. Quien la comparta tiene que entregar también ese
+archivo. Para cualquier uso comercial hace falta un permiso del autor.

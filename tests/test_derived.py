@@ -8,9 +8,9 @@ from typing import Any
 
 import pytest
 
-from misalud.derived import rebuild
-from misalud.derived.rebuild import DerivedCounts, ensure_derived, rebuild_derived
-from misalud.storage.database import Connection, open_database
+from healthlab.derived import rebuild
+from healthlab.derived.rebuild import DerivedCounts, ensure_derived, rebuild_derived
+from healthlab.storage.database import Connection, open_database
 from tests.support.sample_db import build_sample, insert, session
 
 

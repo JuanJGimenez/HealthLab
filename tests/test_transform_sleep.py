@@ -5,9 +5,9 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from misalud.reading.errors import TableMissingError
-from misalud.transform.common import KEPT, TransformError
-from misalud.transform.sleep import SESSION_COLUMNS, STAGE_COLUMNS, night_date_of, transform_sleep
+from healthlab.reading.errors import TableMissingError
+from healthlab.transform.common import KEPT, TransformError
+from healthlab.transform.sleep import SESSION_COLUMNS, STAGE_COLUMNS, night_date_of, transform_sleep
 from tests.support.fake_source import FakeSource, raw, timed
 
 

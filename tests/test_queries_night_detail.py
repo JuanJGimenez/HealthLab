@@ -7,8 +7,8 @@ from datetime import date
 
 import pytest
 
-from misalud.derived.rebuild import rebuild_derived
-from misalud.queries.night_detail import (
+from healthlab.derived.rebuild import rebuild_derived
+from healthlab.queries.night_detail import (
     COMPARED_METRICS,
     DEFAULT_TRACKS,
     TRACKS,
@@ -16,7 +16,7 @@ from misalud.queries.night_detail import (
     night_detail,
     night_differences,
 )
-from misalud.storage.database import Connection
+from healthlab.storage.database import Connection
 from tests.support.sample_db import at, build_sample, insert
 
 

@@ -8,11 +8,11 @@ from pathlib import Path
 
 import pytest
 
-from misalud.config import Paths
-from misalud.pipeline.importing import confirm_import, prepare_import
-from misalud.reading.errors import ExportNotFoundError
-from misalud.storage.backup import list_backups
-from misalud.storage.database import open_database
+from healthlab.config import Paths
+from healthlab.pipeline.importing import confirm_import, prepare_import
+from healthlab.reading.errors import ExportNotFoundError
+from healthlab.storage.backup import list_backups
+from healthlab.storage.database import open_database
 from tests.support.synthetic_export import SyntheticExport, build_export
 
 NOW = datetime(2026, 2, 1, 9, 0, 0)

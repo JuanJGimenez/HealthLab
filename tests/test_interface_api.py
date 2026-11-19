@@ -8,12 +8,12 @@ from typing import Any
 
 import pytest
 
-import misalud
-from misalud.config import Paths
-from misalud.interface import api as api_module
-from misalud.interface.api import Api
-from misalud.interface.settings import Settings, load_settings
-from misalud.storage.backup import list_backups
+import healthlab
+from healthlab.config import Paths
+from healthlab.interface import api as api_module
+from healthlab.interface.api import Api
+from healthlab.interface.settings import Settings, load_settings
+from healthlab.storage.backup import list_backups
 from tests.support.contract import checked
 from tests.support.fake_dialogs import FakeDialogs
 from tests.support.synthetic_export import build_export
@@ -56,7 +56,7 @@ def test_the_page_starts_with_texts_settings_and_no_data(api: Api) -> None:
     boot = api.bootstrap()
     assert boot["ok"]
     assert (boot["version"], boot["language"], boot["theme"]) == (
-        misalud.__version__,
+        healthlab.__version__,
         "es",
         "system",
     )
@@ -230,7 +230,7 @@ def test_the_database_panel_shows_state_history_and_backups(
     do_import(api, dialogs, tmp_path, 6)
     panel = api.database_panel()
     assert panel["folder"] == str(tmp_path / "app" / "data")
-    assert panel["version"] == misalud.__version__
+    assert panel["version"] == healthlab.__version__
     assert panel["size_bytes"] > 0
     assert [row["file_name"] for row in panel["history"]] == [
         "samsunghealth_6.zip",

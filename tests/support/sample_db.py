@@ -14,8 +14,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from misalud.storage.database import Connection, open_database
-from misalud.storage.schema import DETAIL_TABLES
+from healthlab.storage.database import Connection, open_database
+from healthlab.storage.schema import DETAIL_TABLES
 
 
 def at(text: str) -> datetime:

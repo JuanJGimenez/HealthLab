@@ -8,12 +8,12 @@ from datetime import date, datetime
 import pandas as pd
 import pytest
 
-from misalud.annotations.store import set_tag
-from misalud.derived.rebuild import rebuild_derived
-from misalud.queries.common import NightScope, Period, UnknownMetricError, plain
-from misalud.queries.database import data_period, import_history, issue_summary, table_sizes
-from misalud.queries.days import DAY_METRICS, days_by_month, list_days
-from misalud.queries.nights import (
+from healthlab.annotations.store import set_tag
+from healthlab.derived.rebuild import rebuild_derived
+from healthlab.queries.common import NightScope, Period, UnknownMetricError, plain
+from healthlab.queries.database import data_period, import_history, issue_summary, table_sizes
+from healthlab.queries.days import DAY_METRICS, days_by_month, list_days
+from healthlab.queries.nights import (
     NIGHT_METRICS,
     list_nights,
     nights_by_month,
@@ -27,10 +27,10 @@ from misalud.queries.nights import (
     tag_comparison,
     worst_oxygen_nights,
 )
-from misalud.storage.database import Connection, open_database
-from misalud.storage.merge import ImportInfo, apply_merge
-from misalud.storage.schema import DETAIL_TABLES
-from misalud.transform.common import ValidationIssue
+from healthlab.storage.database import Connection, open_database
+from healthlab.storage.merge import ImportInfo, apply_merge
+from healthlab.storage.schema import DETAIL_TABLES
+from healthlab.transform.common import ValidationIssue
 from tests.support.sample_db import build_sample
 
 MIDDLE = Period(start=date(2026, 1, 6), end=date(2026, 1, 8))

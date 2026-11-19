@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HealthLab</title>
+<link rel="stylesheet" href="app.css">
+<script src="vendor/echarts.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 data-t="app.title"></h1>
+      <div class="sub" id="meta"></div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="btn-import" type="button" data-t="action.update"></button>
+      <button class="btn" id="btn-report" type="button" data-t="action.report"></button>
+      <button class="btn" id="btn-tags" type="button" data-t="action.tags"></button>
+      <button class="btn" id="btn-database" type="button" data-t="action.database"></button>
+      <select id="language" data-label="action.language"></select>
+      <button class="btn" id="theme" type="button" data-t="action.theme"></button>
+    </div>
+  </header>
+
+  <section id="welcome" class="card welcome" hidden>
+    <h2 data-t="welcome.title"></h2>
+    <p data-t="welcome.text"></p>
+    <button class="btn primary" id="btn-import-first" type="button" data-t="action.import_first"></button>
+  </section>
+
+  <div id="content" hidden>
+    <div id="notices"></div>
+    <div class="filters" role="group" data-label="filter.label">
+      <div class="fgroup"><span class="flabel" data-t="filter.period"></span>
+        <div class="seg" id="f-period">
+          <button data-v="90" data-t="filter.days90" aria-pressed="false"></button>
+          <button data-v="180" data-t="filter.months6" aria-pressed="false"></button>
+          <button data-v="365" data-t="filter.months12" aria-pressed="false"></button>
+          <button data-v="all" data-t="filter.all_time" aria-pressed="true"></button>
+        </div>
+      </div>
+      <div class="fgroup"><span class="flabel" data-t="filter.nights"></span>
+        <div class="seg" id="f-nights">
+          <button data-v="all" data-t="filter.all_nights" aria-pressed="true"></button>
+          <button data-v="weekend" data-t="filter.weekend" aria-pressed="false"></button>
+          <button data-v="weekdays" data-t="filter.weekdays" aria-pressed="false"></button>
+        </div>
+      </div>
+      <div class="fgroup"><label class="flabel" for="f-tag" data-t="filter.tag"></label>
+        <select id="f-tag"></select>
+      </div>
+    </div>
+
+    <section class="kpis" id="kpis" data-label="kpi.label"></section>
+
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-tab="oxygen" data-t="tab.oxygen" aria-selected="true"></button>
+      <button role="tab" data-tab="sleep" data-t="tab.sleep" aria-selected="false"></button>
+      <button role="tab" data-tab="heart" data-t="tab.heart" aria-selected="false"></button>
+      <button role="tab" data-tab="activity" data-t="tab.activity" aria-selected="false"></button>
+      <button role="tab" data-tab="relate" data-t="tab.relate" aria-selected="false"></button>
+      <button role="tab" data-tab="data" data-t="tab.data" aria-selected="false"></button>
+    </div>
+
+    <section id="p-oxygen" role="tabpanel">
+      <div class="grid">
+        <div class="card full"><h2 data-t="oxygen.low.title"></h2><p class="cap" data-t="oxygen.low.caption"></p><div class="chart" id="o1"></div></div>
+        <div class="card full"><h2 data-t="oxygen.min.title"></h2><p class="cap" data-t="oxygen.min.caption"></p><div class="chart" id="o2"></div></div>
+        <div class="card"><h2 data-t="oxygen.weekday.title"></h2><p class="cap" data-t="oxygen.weekday.caption"></p><div class="chart" id="o3"></div></div>
+        <div class="card"><h2 data-t="oxygen.worst.title"></h2>
+          <div class="row"><label class="flabel" for="worst-by" data-t="oxygen.worst.order"></label>
+            <select id="worst-by">
+              <option value="low_minutes" data-t="metric.low_minutes"></option>
+              <option value="spo2_min" data-t="metric.spo2_min"></option>
+              <option value="below_85_minutes" data-t="metric.below_85_minutes"></option>
+            </select></div>
+          <div class="tscroll short"><table id="worst"></table></div>
+        </div>
+        <div class="card full"><h2 data-t="oxygen.calendar.title"></h2><p class="cap" data-t="oxygen.calendar.caption"></p><div class="scroll-x"><div class="chart cal" id="o4"></div></div></div>
+      </div>
+      <p class="note" data-t="oxygen.note"></p>
+      <p class="note" data-t="night.open_hint"></p>
+    </section>
+
+    <section id="p-sleep" role="tabpanel" hidden>
+      <div class="grid">
+        <div class="card"><h2 data-t="sleep.hours.title"></h2><p class="cap" data-t="sleep.hours.caption"></p><div class="chart" id="s1"></div></div>
+        <div class="card"><h2 data-t="sleep.score.title"></h2><p class="cap" data-t="sleep.score.caption"></p><div class="chart" id="s2"></div></div>
+        <div class="card full"><h2 data-t="sleep.stages.title"></h2><p class="cap" data-t="sleep.stages.caption"></p><div class="chart" id="s3"></div></div>
+      </div>
+      <p class="note" data-t="sleep.note"></p>
+    </section>
+
+    <section id="p-heart" role="tabpanel" hidden>
+      <div class="grid">
+        <div class="card full"><h2 data-t="heart.hrv.title"></h2><p class="cap" data-t="heart.hrv.caption"></p><div class="chart" id="c1"></div></div>
+        <div class="card full"><h2 data-t="heart.pulse.title"></h2><p class="cap" data-t="heart.pulse.caption"></p><div class="chart" id="c2"></div></div>
+        <div class="card"><h2 data-t="heart.hrv_weekday.title"></h2><p class="cap" data-t="heart.hrv_weekday.caption"></p><div class="chart" id="c3"></div></div>
+        <div class="card"><h2 data-t="heart.pulse_weekday.title"></h2><p class="cap" data-t="heart.pulse_weekday.caption"></p><div class="chart" id="c4"></div></div>
+      </div>
+    </section>
+
+    <section id="p-activity" role="tabpanel" hidden>
+      <div class="grid">
+        <div class="card"><h2 data-t="activity.steps.title"></h2><p class="cap" data-t="activity.steps.caption"></p><div class="chart" id="a1"></div></div>
+        <div class="card"><h2 data-t="activity.exercise.title"></h2><p class="cap" data-t="activity.exercise.caption"></p><div class="chart" id="a2"></div></div>
+        <div class="card full"><h2 data-t="activity.stress.title"></h2><p class="cap" data-t="activity.stress.caption"></p><div class="chart" id="a3"></div></div>
+        <div class="card"><h2 data-t="hourly.pulse.title"></h2><p class="cap" data-t="hourly.caption"></p><div class="chart" id="a4"></div></div>
+        <div class="card"><h2 data-t="hourly.stress.title"></h2><p class="cap" data-t="hourly.caption"></p><div class="chart" id="a5"></div></div>
+      </div>
+      <p class="note" data-t="activity.note"></p>
+    </section>
+
+    <section id="p-relate" role="tabpanel" hidden>
+      <div class="card full">
+        <h2 data-t="relate.title"></h2><p class="cap" data-t="relate.caption"></p>
+        <div class="row">
+          <label class="flabel" for="rx" data-t="relate.horizontal"></label><select id="rx"></select>
+          <label class="flabel" for="ry" data-t="relate.vertical"></label><select id="ry"></select>
+          <button class="btn" id="swap" type="button" data-t="relate.swap"></button>
+          <label class="flabel" for="r-highlight" data-t="relate.highlight"></label><select id="r-highlight"></select>
+        </div>
+        <div class="chart tall" id="r1"></div>
+        <p class="stat" id="rstat" aria-live="polite"></p>
+        <p class="note" data-t="relate.note"></p>
+      </div>
+      <div class="card full night-card">
+        <h2 data-t="tagcompare.title"></h2><p class="cap" data-t="tagcompare.caption"></p>
+        <div class="row"><label class="flabel" for="cmp-tag" data-t="filter.tag"></label><select id="cmp-tag"></select></div>
+        <div id="tagcompare"></div>
+      </div>
+    </section>
+
+    <section id="p-data" role="tabpanel" hidden>
+      <div class="card full">
+        <h2 data-t="data.title"></h2>
+        <div class="row"><span class="stat" id="dstat"></span><button class="btn" id="csv" type="button" data-t="data.download"></button><span class="stat" id="csv-done" aria-live="polite"></span></div>
+        <div class="tscroll"><table id="dt"></table></div>
+      </div>
+    </section>
+  </div>
+
+  <section id="night" hidden>
+    <div class="night-nav">
+      <button class="btn" id="night-back" type="button" data-t="night.back"></button>
+      <button class="btn" id="night-prev" type="button" data-t="night.previous"></button>
+      <h2 id="night-title"></h2>
+      <button class="btn" id="night-next" type="button" data-t="night.next"></button>
+      <button class="btn" id="night-compare" type="button" data-t="night.compare"></button>
+      <button class="btn" id="night-day" type="button" data-t="day.view"></button>
+    </div>
+    <div class="facts" id="night-facts"></div>
+    <div class="card night-card">
+      <h2 data-t="night.tags"></h2>
+      <p class="cap" data-t="night.tags.caption"></p>
+      <div class="chips" id="night-tags"></div>
+      <div class="row">
+        <input type="text" id="night-note" data-placeholder="night.note.placeholder" maxlength="300">
+        <button class="btn" id="night-note-save" type="button" data-t="night.save"></button>
+        <span class="stat" id="night-note-done" aria-live="polite"></span>
+      </div>
+    </div>
+    <div class="card night-card">
+      <h2 data-t="night.tracks"></h2>
+      <p class="cap" data-t="night.tracks.caption"></p>
+      <div class="chips" id="night-toggles"></div>
+      <div id="night-chart"></div>
+    </div>
+  </section>
+
+  <section id="day" hidden>
+    <div class="night-nav">
+      <button class="btn" id="day-back" type="button" data-t="night.back"></button>
+      <button class="btn" id="day-prev" type="button" data-t="day.previous"></button>
+      <h2 id="day-title"></h2>
+      <button class="btn" id="day-next" type="button" data-t="day.next"></button>
+      <button class="btn" id="day-night-before" type="button" data-t="day.night_before"></button>
+      <button class="btn" id="day-night-after" type="button" data-t="day.night_after"></button>
+    </div>
+    <div class="facts" id="day-facts"></div>
+    <div class="card night-card">
+      <h2 data-t="night.tags"></h2>
+      <p class="cap" data-t="night.tags.caption"></p>
+      <div class="chips" id="day-tags"></div>
+      <div class="row">
+        <input type="text" id="day-screen-note" data-placeholder="night.note.placeholder" maxlength="300">
+        <button class="btn" id="day-note-save" type="button" data-t="night.save"></button>
+        <span class="stat" id="day-note-done" aria-live="polite"></span>
+      </div>
+    </div>
+    <div class="card night-card">
+      <h2 data-t="day.tracks"></h2>
+      <p class="cap" data-t="day.tracks.caption"></p>
+      <div id="day-chart"></div>
+    </div>
+  </section>
+
+  <section id="compare" hidden>
+    <div class="night-nav">
+      <button class="btn" id="compare-back" type="button" data-t="night.back"></button>
+      <h2 data-t="compare.title"></h2>
+    </div>
+    <div class="card">
+      <div class="row">
+        <label class="flabel" for="cmp-a" data-t="compare.night_a"></label><input type="date" id="cmp-a">
+        <label class="flabel" for="cmp-b" data-t="compare.night_b"></label><input type="date" id="cmp-b">
+        <button class="btn" id="cmp-previous" type="button" data-t="compare.previous"></button>
+        <button class="btn" id="cmp-week" type="button" data-t="compare.week"></button>
+      </div>
+      <div class="row"><span class="flabel" data-t="compare.align"></span>
+        <div class="seg" id="cmp-align">
+          <button data-v="elapsed" data-t="compare.elapsed" aria-pressed="true"></button>
+          <button data-v="clock" data-t="compare.clock" aria-pressed="false"></button>
+        </div>
+        <span class="stat" id="cmp-message" aria-live="polite"></span>
+      </div>
+      <div class="tscroll"><table id="cmp-table"></table></div>
+    </div>
+    <div class="card night-card">
+      <h2 data-t="night.tracks"></h2>
+      <p class="cap" data-t="compare.caption"></p>
+      <div class="chips" id="compare-toggles"></div>
+      <div id="compare-chart"></div>
+    </div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+    <div class="dialog-head"><h2 id="dialog-title"></h2><button class="btn" id="dialog-close" type="button" data-t="action.close"></button></div>
+    <div id="dialog-body"></div>
+    <div class="dialog-foot" id="dialog-foot"></div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

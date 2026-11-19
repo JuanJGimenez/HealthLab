@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-import misalud
-from misalud.config import Paths
-from misalud.interface import selfcheck, startup
-from misalud.interface.selfcheck import Check, format_report, run_checks
+import healthlab
+from healthlab.config import Paths
+from healthlab.interface import selfcheck, startup
+from healthlab.interface.selfcheck import Check, format_report, run_checks
 from tests.support.synthetic_export import build_export
 
 
@@ -49,7 +49,7 @@ def test_a_missing_page_file_and_library_fail_without_stopping_the_rest(
     web.mkdir()
     (web / "index.html").write_text("", encoding="utf-8")
     monkeypatch.setattr(selfcheck, "WEB_DIR", web)
-    monkeypatch.setattr(selfcheck, "WINDOW_LIBRARY", "misalud_no_such_library")
+    monkeypatch.setattr(selfcheck, "WINDOW_LIBRARY", "healthlab_no_such_library")
     outcome = {check.name: check for check in run_checks(paths)}
     assert not outcome["page files"].ok
     assert outcome["page files"].detail == (
@@ -64,7 +64,7 @@ def test_a_missing_page_file_and_library_fail_without_stopping_the_rest(
 def test_the_report_lists_each_check_and_a_verdict() -> None:
     passed = [Check("texts", True, "es, en")]
     assert format_report(passed) == (
-        f"MiSalud {misalud.__version__}\n[OK] texts: es, en\nRESULT: OK\n"
+        f"HealthLab {healthlab.__version__}\n[OK] texts: es, en\nRESULT: OK\n"
     )
     failed = [*passed, Check("database", False, "IOError: locked")]
     assert format_report(failed).splitlines()[-2:] == [
@@ -116,7 +116,7 @@ def test_the_check_flag_writes_the_report_and_opens_no_window(paths: Paths) -> N
 def test_a_failed_check_gives_a_failing_exit_code(
     paths: Paths, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(selfcheck, "WINDOW_LIBRARY", "misalud_no_such_library")
+    monkeypatch.setattr(selfcheck, "WINDOW_LIBRARY", "healthlab_no_such_library")
     assert startup.run(["--check"], paths, refuse, refuse) == 1
     report = startup.check_report_path(paths).read_text(encoding="utf-8")
     assert report.endswith("RESULT: 1 FAILED\n")
@@ -140,5 +140,5 @@ def test_an_error_at_start_is_logged_and_shown(paths: Paths) -> None:
     log = startup.error_log_path(paths)
     assert shown[0] == f"RuntimeError: no window\n\n{log}"
     text = log.read_text(encoding="utf-8")
-    assert text.startswith(f"2026-11-15T10:30:00 MiSalud {misalud.__version__}\n")
+    assert text.startswith(f"2026-11-15T10:30:00 HealthLab {healthlab.__version__}\n")
     assert text.count("RuntimeError: no window") == 2

@@ -1,9 +1,9 @@
 @echo off
-rem Build the portable MiSalud folder on Windows.
+rem Build the portable HealthLab folder on Windows.
 rem
 rem Double-click this file, or run it from a terminal:
-rem     release\build_windows.bat                      build and check dist\MiSalud
-rem     release\build_windows.bat --install C:\MiSalud  also put the program there
+rem     release\build_windows.bat                      build and check dist\HealthLab
+rem     release\build_windows.bat --install C:\HealthLab  also put the program there
 rem
 rem The first run creates a private Python environment in .venv-build and
 rem downloads the libraries, so it needs internet. The app itself never does.
@@ -33,12 +33,12 @@ echo Instalando las librerias ...
 ".venv-build\Scripts\python.exe" -m pip install --quiet ".[ui,build]"
 if errorlevel 1 goto :failed
 
-echo Armando la carpeta de MiSalud. Tarda unos minutos ...
+echo Armando la carpeta de HealthLab. Tarda unos minutos ...
 ".venv-build\Scripts\python.exe" release\build.py %*
 if errorlevel 1 goto :failed
 
 echo.
-echo Listo. La carpeta de la app esta en dist\MiSalud
+echo Listo. La carpeta de la app esta en dist\HealthLab
 pause
 exit /b 0
 

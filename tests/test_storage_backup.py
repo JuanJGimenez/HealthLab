@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from misalud.storage.backup import backup_database, list_backups, prune_backups, restore_backup
-from misalud.storage.database import open_database
-from misalud.storage.errors import StorageError
+from healthlab.storage.backup import backup_database, list_backups, prune_backups, restore_backup
+from healthlab.storage.database import open_database
+from healthlab.storage.errors import StorageError
 
 
 def make_database(path: Path, tag: str) -> None:

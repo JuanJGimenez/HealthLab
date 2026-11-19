@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from misalud.transform.common import KEPT, REJECTED
-from misalud.transform.night_signals import (
+from healthlab.transform.common import KEPT, REJECTED
+from healthlab.transform.night_signals import (
     to_boolean,
     transform_respiratory_rate,
     transform_skin_temperature,

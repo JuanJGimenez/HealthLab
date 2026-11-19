@@ -9,12 +9,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from misalud.interface.api import Api
-from misalud.interface.window import WEB_DIR
+from healthlab.interface.api import Api
+from healthlab.interface.window import WEB_DIR
 
 BRIDGE_SCRIPT = """
 // Fields the page read from an answer although Python never sent them.
-window.misaludMissingReads = [];
+window.healthlabMissingReads = [];
 const watched = (value, path) => {
   if (value === null || typeof value !== 'object') return value;
   return new Proxy(value, {
@@ -24,7 +24,7 @@ const watched = (value, path) => {
       if (!(key in target)) {
         // Past the end of a list, or a method of an object, is not a field.
         if (!isArray && key !== 'then' && key !== 'toJSON') {
-          window.misaludMissingReads.push(path + '.' + key);
+          window.healthlabMissingReads.push(path + '.' + key);
         }
         return undefined;
       }
@@ -35,7 +35,7 @@ const watched = (value, path) => {
 window.pywebview = {api: {}};
 for (const name of %s) {
   window.pywebview.api[name] = async (...args) =>
-    watched(await window['misalud_' + name](...args), name);
+    watched(await window['healthlab_' + name](...args), name);
 }
 """
 
@@ -47,7 +47,7 @@ def missing_reads(page: Any) -> list[str]:
     it is recorded as ``method.path.field``. A field the page reads but Python
     renamed or dropped shows up here.
     """
-    found: list[str] = page.evaluate("[...new Set(window.misaludMissingReads)].sort()")
+    found: list[str] = page.evaluate("[...new Set(window.healthlabMissingReads)].sort()")
     return found
 
 
@@ -76,7 +76,7 @@ def open_page(page: Any, api: Api) -> list[str]:
     )
     names = api_methods(api)
     for name in names:
-        page.expose_function(f"misalud_{name}", getattr(api, name))
+        page.expose_function(f"healthlab_{name}", getattr(api, name))
     page.add_init_script(BRIDGE_SCRIPT % names)
     page.goto((WEB_DIR / "index.html").as_uri())
     page.wait_for_function("document.querySelector('#foot').textContent !== ''")

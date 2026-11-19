@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from misalud.reading.contracts import load_contracts
+from healthlab.reading.contracts import load_contracts
 from tests.support import synthetic_export as synth
 from tests.support.synthetic_export import SyntheticExport, build_export
 

@@ -8,7 +8,7 @@ from datetime import date, datetime
 import pandas as pd
 import pytest
 
-from misalud.annotations.store import (
+from healthlab.annotations.store import (
     AnnotationError,
     add_tag,
     day_annotations,
@@ -18,8 +18,8 @@ from misalud.annotations.store import (
     set_tag,
     set_tag_active,
 )
-from misalud.storage.database import Connection, open_database
-from misalud.storage.merge import ImportInfo, apply_merge
+from healthlab.storage.database import Connection, open_database
+from healthlab.storage.merge import ImportInfo, apply_merge
 
 DAY = date(2026, 1, 5)
 NOW = datetime(2026, 1, 6, 9, 0)

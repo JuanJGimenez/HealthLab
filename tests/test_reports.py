@@ -11,16 +11,16 @@ import pytest
 from pypdf import PdfReader
 from reportlab.graphics.shapes import Rect, String
 
-from misalud.annotations.profile import load_profile, save_profile
-from misalud.annotations.store import AnnotationError, add_tag, rename_tag, set_tag
-from misalud.derived.rebuild import rebuild_derived
-from misalud.queries.common import NightScope, Period
-from misalud.queries.report import low_minutes_series, report_summary, tag_patterns, top_nights
-from misalud.reports.charts import category_chart, nice_axis, timeline_chart
-from misalud.reports.content import PersonalData, ReportOptions, gather_report
-from misalud.reports.pdf import clock, render_pdf
-from misalud.reports.texts import REPORT_LANGUAGES, load_report_texts
-from misalud.storage.database import Connection, open_database
+from healthlab.annotations.profile import load_profile, save_profile
+from healthlab.annotations.store import AnnotationError, add_tag, rename_tag, set_tag
+from healthlab.derived.rebuild import rebuild_derived
+from healthlab.queries.common import NightScope, Period
+from healthlab.queries.report import low_minutes_series, report_summary, tag_patterns, top_nights
+from healthlab.reports.charts import category_chart, nice_axis, timeline_chart
+from healthlab.reports.content import PersonalData, ReportOptions, gather_report
+from healthlab.reports.pdf import clock, render_pdf
+from healthlab.reports.texts import REPORT_LANGUAGES, load_report_texts
+from healthlab.storage.database import Connection, open_database
 from tests.support.sample_db import at, build_sample, insert
 
 NOW = datetime(2026, 1, 20, 9, 0)

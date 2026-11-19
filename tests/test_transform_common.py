@@ -5,8 +5,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from misalud.config import ValueRange
-from misalud.transform.common import (
+from healthlab.config import ValueRange
+from healthlab.transform.common import (
     KEPT,
     REJECTED,
     TransformError,

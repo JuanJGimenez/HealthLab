@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from misalud.reading.contracts import load_contracts
-from misalud.reading.errors import TableMissingError
-from misalud.reading.source import ExportSource
-from misalud.transform.common import DomainResult, Source, TransformError, ValidationIssue
-from misalud.transform.export import DOMAIN_SOURCES, DOMAINS, transform_export
+from healthlab.reading.contracts import load_contracts
+from healthlab.reading.errors import TableMissingError
+from healthlab.reading.source import ExportSource
+from healthlab.transform.common import DomainResult, Source, TransformError, ValidationIssue
+from healthlab.transform.export import DOMAIN_SOURCES, DOMAINS, transform_export
 from tests.support import synthetic_export as synth
 from tests.support.fake_source import FakeSource
 from tests.support.synthetic_export import SyntheticExport

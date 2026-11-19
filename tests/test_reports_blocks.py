@@ -10,21 +10,21 @@ import pytest
 from pypdf import PdfReader
 from reportlab.graphics.shapes import Circle, PolyLine, Rect, String
 
-from misalud.annotations.store import set_tag
-from misalud.derived.rebuild import rebuild_derived
-from misalud.queries.common import Period, UnknownMetricError
-from misalud.queries.night_detail import night_detail
-from misalud.queries.report import day_averages, ecg_list, night_averages, night_metric_stats
-from misalud.reports.content import BLOCKS, Cross, ReportOptions, gather_report
-from misalud.reports.pdf import render_pdf
-from misalud.reports.plots import (
+from healthlab.annotations.store import set_tag
+from healthlab.derived.rebuild import rebuild_derived
+from healthlab.queries.common import Period, UnknownMetricError
+from healthlab.queries.night_detail import night_detail
+from healthlab.queries.report import day_averages, ecg_list, night_averages, night_metric_stats
+from healthlab.reports.content import BLOCKS, Cross, ReportOptions, gather_report
+from healthlab.reports.pdf import render_pdf
+from healthlab.reports.plots import (
     line_chart,
     nice_range,
     points_chart,
     stacked_chart,
     tracks_chart,
 )
-from misalud.storage.database import Connection, open_database
+from healthlab.storage.database import Connection, open_database
 from tests.support.sample_db import at, build_sample, insert
 
 NOW = datetime(2026, 1, 20, 9, 0)

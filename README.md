@@ -1,4 +1,4 @@
-# MiSalud
+# HealthLab
 
 Aplicación de escritorio para Windows que importa las exportaciones de Samsung Health, las acumula
 en una base local y permite analizar y relacionar los datos del reloj.
@@ -8,25 +8,26 @@ Muestra tendencias de un reloj de pulsera y no reemplaza una evaluación médica
 
 ## Estado
 
-Versión 1.0.1. Importa una exportación con vista previa, fusiona sin perder datos, muestra seis
+Versión 1.1.0. Importa una exportación con vista previa, fusiona sin perder datos, muestra seis
 vistas, el detalle de cada noche con ocho pistas y la comparación de dos noches, y permite
 etiquetar fechas y filtrar por etiqueta. Tiene además la pantalla de un día y el día típico por
 hora, y genera el informe para el médico en PDF, con bloques opcionales. En español o en inglés.
 Se entrega como una carpeta portátil para Windows.
 
-La carpeta se armó en Windows y la app se probó ahí el 18 de noviembre de 2026.
+La carpeta se armó en Windows y la app se probó ahí el 18 de noviembre de 2026. Hasta la versión
+1.0.1 la app se llamaba MiSalud.
 
 ## Usar la app
 
 - Cómo se usa: [`docs/manual.md`](docs/manual.md).
-- Cómo se genera `MiSalud.exe`: [`docs/build_windows.md`](docs/build_windows.md). En resumen,
+- Cómo se genera `HealthLab.exe`: [`docs/build_windows.md`](docs/build_windows.md). En resumen,
   doble clic en `release\build_windows.bat`.
 
 Para abrirla desde el código, sin empaquetar:
 
 ```
 pip install ".[ui]"
-misalud
+healthlab
 ```
 
 El plan completo y las decisiones de diseño están en `docs/`.
@@ -64,7 +65,7 @@ pytest
 ## Estructura
 
 ```
-src/misalud/      código, organizado por capas (ver docs/architecture.md)
+src/healthlab/    código, organizado por capas (ver docs/architecture.md)
 tests/            pruebas automáticas
 tests/support/    exportación sintética con el formato de Samsung Health
 release/          armado de la carpeta para Windows (ver docs/build_windows.md)
@@ -78,3 +79,22 @@ data/             base, respaldos y zips originales; fuera del control de versio
 - Documentos del proyecto y textos de la interfaz: en español; la interfaz también en inglés.
 - Una función sin documentar o sin prueba no se considera terminada.
 - Los umbrales que afectan un resultado viven en `config.py`, con su motivo.
+
+## Licencia
+
+Copyright 2026 Juan Jose Gimenez.
+
+HealthLab se distribuye bajo la [PolyForm Noncommercial License 1.0.0](LICENSE). Se puede usar,
+copiar, modificar y compartir con fines no comerciales: uso personal, estudio, investigación, y
+uso por organizaciones educativas, de salud pública o sin fines de lucro. Cualquier uso comercial
+requiere un permiso aparte del autor.
+
+Quien comparta el programa o una versión modificada tiene que entregar también el archivo
+`LICENSE`, con su línea `Required Notice`.
+
+Los componentes de terceros conservan su propia licencia:
+
+| Componente | Licencia | Dónde |
+|---|---|---|
+| Apache ECharts | Apache 2.0 | `src/healthlab/interface/web/vendor/`, con su aviso |
+| Librerías de Python (DuckDB, pandas, ReportLab, pywebview y las que ellas usan) | Las de cada una | Se instalan aparte; la carpeta para Windows las lleva y las detalla en `THIRD_PARTY_LICENSES.txt` |

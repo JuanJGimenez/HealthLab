@@ -5,10 +5,10 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-import misalud
+import healthlab
 
-PACKAGE_DIR = Path(misalud.__file__).resolve().parent
-ORDER = {name: position for position, name in enumerate(misalud.LAYERS)}
+PACKAGE_DIR = Path(healthlab.__file__).resolve().parent
+ORDER = {name: position for position, name in enumerate(healthlab.LAYERS)}
 
 
 def layer_of(path: Path) -> str | None:
@@ -18,13 +18,13 @@ def layer_of(path: Path) -> str | None:
 
 
 def imported_layers(source: str, package: tuple[str, ...]) -> set[str]:
-    """Return the MiSalud layers a piece of source code imports.
+    """Return the HealthLab layers a piece of source code imports.
 
     Args:
         source: Python source code.
         package: Dotted package the code lives in, as parts, used to resolve
-            relative imports. For ``misalud/reading/csv.py`` it is
-            ``("misalud", "reading")``.
+            relative imports. For ``healthlab/reading/csv.py`` it is
+            ``("healthlab", "reading")``.
 
     Returns:
         The names of the imported layers.
@@ -40,7 +40,7 @@ def imported_layers(source: str, package: tuple[str, ...]) -> set[str]:
             targets = [".".join((*module, alias.name)) for alias in node.names]
         for target in targets:
             parts = target.split(".")
-            if parts[0] == "misalud" and len(parts) > 1 and parts[1] in ORDER:
+            if parts[0] == "healthlab" and len(parts) > 1 and parts[1] in ORDER:
                 found.add(parts[1])
     return found
 
@@ -57,7 +57,7 @@ def test_layers_on_disk_match_the_declared_order() -> None:
         if (entry.is_dir() and (entry / "__init__.py").is_file())
         or (entry.suffix == ".py" and entry.name != "__init__.py")
     }
-    assert on_disk == set(misalud.LAYERS)
+    assert on_disk == set(healthlab.LAYERS)
 
 
 def test_a_layer_imports_only_lower_layers() -> None:
@@ -66,7 +66,7 @@ def test_a_layer_imports_only_lower_layers() -> None:
         layer = layer_of(path)
         if layer is None:
             continue
-        package = ("misalud", *path.relative_to(PACKAGE_DIR).parts[:-1])
+        package = ("healthlab", *path.relative_to(PACKAGE_DIR).parts[:-1])
         imported = imported_layers(path.read_text(encoding="utf-8"), package)
         violations += [
             f"{path.relative_to(PACKAGE_DIR)} imports {name}"
@@ -77,14 +77,14 @@ def test_a_layer_imports_only_lower_layers() -> None:
 
 def test_the_check_sees_absolute_and_relative_imports() -> None:
     source = (
-        "import misalud.storage.merge\n"
-        "from misalud.interface import window\n"
+        "import healthlab.storage.merge\n"
+        "from healthlab.interface import window\n"
         "from ..queries import nights\n"
         "from . import contracts\n"
         "from .. import config\n"
         "import json\n"
     )
-    found = imported_layers(source, ("misalud", "reading"))
+    found = imported_layers(source, ("healthlab", "reading"))
     assert found == {"storage", "interface", "queries", "reading", "config"}
 
 
@@ -95,7 +95,7 @@ def test_the_check_flags_only_upward_imports() -> None:
 
 
 def test_every_layer_states_its_responsibility() -> None:
-    for layer in misalud.LAYERS:
+    for layer in healthlab.LAYERS:
         module = PACKAGE_DIR / layer / "__init__.py"
         path = module if module.is_file() else PACKAGE_DIR / f"{layer}.py"
         docstring = ast.get_docstring(ast.parse(path.read_text(encoding="utf-8")))

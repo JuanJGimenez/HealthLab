@@ -15,24 +15,25 @@ from release.build import BuildError, install
 
 def built_folder(root: Path, mark: str) -> Path:
     """Create a folder shaped like a built app, with ``mark`` in each file."""
-    folder = root / "MiSalud"
-    (folder / build.INTERNAL_FOLDER / "misalud").mkdir(parents=True)
+    folder = root / "HealthLab"
+    (folder / build.INTERNAL_FOLDER / "healthlab").mkdir(parents=True)
     (folder / build.EXECUTABLE).write_text(mark, encoding="utf-8")
-    (folder / build.INTERNAL_FOLDER / "misalud" / "app.js").write_text(mark, encoding="utf-8")
-    (folder / build.MANUAL_NAME).write_text(mark, encoding="utf-8")
+    (folder / build.INTERNAL_FOLDER / "healthlab" / "app.js").write_text(mark, encoding="utf-8")
+    for name in (build.MANUAL_NAME, build.LICENSE_NAME, build.NOTICES_NAME):
+        (folder / name).write_text(mark, encoding="utf-8")
     return folder
 
 
 def test_a_first_installation_creates_the_folder(tmp_path: Path) -> None:
     source = built_folder(tmp_path / "dist", "v1")
-    target = tmp_path / "apps" / "MiSalud"
-    assert install(source, target) == [build.EXECUTABLE, build.INTERNAL_FOLDER, build.MANUAL_NAME]
+    target = tmp_path / "apps" / "HealthLab"
+    assert install(source, target) == list(build.PROGRAM_ITEMS)
     assert (target / build.EXECUTABLE).read_text(encoding="utf-8") == "v1"
     assert not (target / build.DATA_FOLDER).exists()
 
 
 def test_an_update_replaces_the_program_and_keeps_the_data(tmp_path: Path) -> None:
-    target = tmp_path / "apps" / "MiSalud"
+    target = tmp_path / "apps" / "HealthLab"
     install(built_folder(tmp_path / "old", "v1"), target)
     (target / build.INTERNAL_FOLDER / "left_over.dll").write_text("old", encoding="utf-8")
     data = target / build.DATA_FOLDER
@@ -44,7 +45,7 @@ def test_an_update_replaces_the_program_and_keeps_the_data(tmp_path: Path) -> No
     install(built_folder(tmp_path / "new", "v2"), target)
 
     assert (target / build.EXECUTABLE).read_text(encoding="utf-8") == "v2"
-    assert (target / build.INTERNAL_FOLDER / "misalud" / "app.js").read_text("utf-8") == "v2"
+    assert (target / build.INTERNAL_FOLDER / "healthlab" / "app.js").read_text("utf-8") == "v2"
     assert not (target / build.INTERNAL_FOLDER / "left_over.dll").exists()
     assert (data / "salud.duckdb").read_text(encoding="utf-8") == "records"
     assert (data / "backups" / "salud_1.duckdb").read_text(encoding="utf-8") == "backup"
@@ -68,4 +69,24 @@ def test_a_source_with_data_or_without_program_is_refused(tmp_path: Path) -> Non
 def test_a_missing_optional_item_is_skipped(tmp_path: Path) -> None:
     source = built_folder(tmp_path / "dist", "v1")
     (source / build.MANUAL_NAME).unlink()
-    assert install(source, tmp_path / "target") == [build.EXECUTABLE, build.INTERNAL_FOLDER]
+    assert install(source, tmp_path / "target") == [
+        build.EXECUTABLE,
+        build.INTERNAL_FOLDER,
+        build.LICENSE_NAME,
+        build.NOTICES_NAME,
+    ]
+
+
+def test_an_update_over_a_folder_from_before_the_rename_leaves_one_program(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "MiSalud"
+    (target / build.DATA_FOLDER).mkdir(parents=True)
+    (target / build.DATA_FOLDER / "salud.duckdb").write_text("records", encoding="utf-8")
+    (target / "MiSalud.exe").write_text("old program", encoding="utf-8")
+    (target / "MiSalud").mkdir()  # a folder of the user that happens to share the name
+    install(built_folder(tmp_path / "dist", "v2"), target)
+    assert not (target / "MiSalud.exe").exists()
+    assert (target / "MiSalud").is_dir()
+    assert (target / build.EXECUTABLE).read_text(encoding="utf-8") == "v2"
+    assert (target / build.DATA_FOLDER / "salud.duckdb").read_text(encoding="utf-8") == "records"

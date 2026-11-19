@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from misalud.reading.details import detail_path, read_detail
-from misalud.reading.errors import DetailFileError
-from misalud.reading.tables import list_tables, read_table
+from healthlab.reading.details import detail_path, read_detail
+from healthlab.reading.errors import DetailFileError
+from healthlab.reading.tables import list_tables, read_table
 from tests.support.synthetic_export import SyntheticExport
 
 

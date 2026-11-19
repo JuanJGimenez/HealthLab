@@ -1,4 +1,4 @@
-"""Draw the app icon and save it as ``misalud.ico``.
+"""Draw the app icon and save it as ``healthlab.ico``.
 
 The icon is kept in the repository; run this script only to change it:
 ``python release/make_icon.py``. It needs the Pillow library.
@@ -40,6 +40,6 @@ def draw_icon() -> Image.Image:
 
 
 if __name__ == "__main__":
-    target = Path(__file__).resolve().parent / "misalud.ico"
+    target = Path(__file__).resolve().parent / "healthlab.ico"
     draw_icon().save(target, sizes=SIZES)
     print(target)

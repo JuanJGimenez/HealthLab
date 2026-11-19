@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from misalud.reading.contracts import ColumnContract, TableContract, load_contracts
+from healthlab.reading.contracts import ColumnContract, TableContract, load_contracts
 
 ROLLING_WINDOW_TABLES = {
     "tracker.pedometer_step_count",
